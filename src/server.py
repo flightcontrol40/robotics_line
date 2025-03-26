@@ -12,6 +12,8 @@ from pymodbus.device import ModbusDeviceIdentification
 from pymodbus.logging import Log
 from pymodbus.server import ModbusTcpServer, StartAsyncTcpServer
 
+from async_reader_writer import ThreadSafeDataBlock
+
 Log.setLevel(0)
 _logger = logging.getLogger(__name__)
 _logger.setLevel(0)
@@ -70,6 +72,11 @@ async def updating_task(context: ModbusServerContext):
         print(txt)
         _logger.debug(txt)
 
+
+
+
+
+
 async def run():
 # X Position​      32001​    2​    R​    FLOAT32​    mm​    X position​
 # Y Position​      32003​    2​    R​    FLOAT32​    mm​    Y position​
@@ -86,14 +93,11 @@ async def run():
 # Handoff​         12007​    1​    R​    BIT​    bool​    1 Ready to Handoff, 0 Not Ready​
 
     def get_data_block():
-        return ModbusSparseDataBlock({0: [0]*20}, mutable=True)
+        return ThreadSafeDataBlock(
+            ModbusSparseDataBlock({0: [0]*20}, mutable=True)
+        )
 
 
-    holding_registers = ModbusSparseDataBlock(
-        {
-
-        }
-    )
     # Build data storage
     context = ModbusServerContext(
         slaves = ModbusSlaveContext(
