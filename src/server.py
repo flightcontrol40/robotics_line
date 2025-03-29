@@ -123,14 +123,14 @@ async def run():
     task.set_name("example updating task")
     address = ('', 5020)
 
-    server = ModbusTcpServer(
-        context=context,
-        framer="socket",
-        identity=identity,
-        address=address
-    )
+    # server = ModbusTcpServer(
+    #     context=context,
+    #     framer="socket",
+    #     identity=identity,
+    #     address=address
+    # )
 
-    server.serve_forever()
+    # server.serve_forever()
     await StartAsyncTcpServer(   # start the server
         context=context,  # Data storage
         identity=identity,  # server identify
