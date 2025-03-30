@@ -129,8 +129,10 @@ class ReadWriteLock(object):
 
 
 class ThreadSafeDataBlock(BaseModbusDataBlock):
-    """ This is a simple decorator for a data block. This allows
-    a user to inject an existing data block which can then be
+    """ 
+    A Pymodbus Datablock's decorator that insures os-level R/W thread safety.
+
+    This allows a user to inject an existing data block which can then be
     safely operated on from multiple concurrent threads.
 
     It should be noted that the choice was made to lock around the
@@ -139,7 +141,7 @@ class ThreadSafeDataBlock(BaseModbusDataBlock):
     occur to slave 0x02).
     """
 
-    def __init__(self, block):
+    def __init__(self, block = None):
         """ Initialize a new thread safe decorator
 
         :param block: The block to decorate
@@ -177,38 +179,4 @@ class ThreadSafeDataBlock(BaseModbusDataBlock):
             return self.block.setValues(address, values)
 
 
-# if __name__ == "__main__":
 
-#     class AtomicCounter(object):
-#         def __init__(self, **kwargs):
-#             self.counter = kwargs.get('start', 0)
-#             self.finish  = kwargs.get('finish', 1000)
-#             self.lock    = threading.Lock()
-
-#         def increment(self, count=1):
-#             with self.lock:
-#                 self.counter += count
-
-#         def is_running(self):
-#             return self.counter <= self.finish
-
-#     locker = ReadWriteLock()
-#     readers, writers = AtomicCounter(), AtomicCounter()
-
-#     def read():
-#         while writers.is_running() and readers.is_running():
-#             with locker.get_reader_lock():
-#                 readers.increment()
-
-#     def write():
-#         while writers.is_running() and readers.is_running():
-#             with locker.get_writer_lock():
-#                 writers.increment()
-
-#     rthreads = [threading.Thread(target=read)  for i in range(50)]
-#     wthreads = [threading.Thread(target=write) for i in range(10)]
-#     for t in rthreads + wthreads:
-#         t.start()
-#     for t in rthreads + wthreads:
-#         t.join()
-#     print("readers[%d] writers[%d]" % (readers.counter, writers.counter))
