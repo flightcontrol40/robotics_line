@@ -1,0 +1,3 @@
+[submodule "fanuc_ros2_drivers"]
+	path = fanuc_ros2_drivers
+	url = https://github.com/UofI-CDACS/fanuc_ros2_drivers.git
