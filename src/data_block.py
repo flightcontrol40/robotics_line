@@ -39,8 +39,8 @@ class PosData(BaseModel):
 
 class CRX10InputRegisters(ThreadSafeDataBlock):
 
-    def __init__(self):
-        block = ModbusSparseDataBlock({k:0 for k in range(3001, 3014)}, mutable=True)
+    def __init__(self, values = {}):
+        block = ModbusSparseDataBlock(values=values, mutable=True)
         super().__init__(block=block)
 
 
@@ -57,16 +57,16 @@ class CRX10InputRegisters(ThreadSafeDataBlock):
 # Conveyor Right Detection    13011    1    R    Bit    Bool    1 Detected, 0 Not Detected 
 # Conveyor Left Detection     13012    1    R    Bit    Bool    1 Detected, 0 Not Detected 
 class CRX10DiscreteInputs(ThreadSafeDataBlock):
-    def __init__(self):
-        block = ModbusSparseDataBlock(values={k:0 for k in range(3001, 3012)}, mutable=True)
+    def __init__(self, values= {}):
+        block = ModbusSparseDataBlock(values=values, mutable=True)
         super().__init__(block=block)
 
 
 class CRX10Mapper:
 
     def __init__(self):
-        self.ir: CRX10InputRegisters = CRX10InputRegisters()
-        self.di: CRX10DiscreteInputs = CRX10DiscreteInputs()
+        self.ir: CRX10InputRegisters = CRX10InputRegisters(values= {k:0 for k in range(3001, 3014)})
+        self.di: CRX10DiscreteInputs = CRX10DiscreteInputs(values={k:0 for k in range(3001, 3012)})
         self.server_context = self._build_context()
 
     def _build_context(self):
