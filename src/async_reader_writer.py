@@ -4,28 +4,6 @@ from contextlib import contextmanager
 from pymodbus.datastore.store import BaseModbusDataBlock
 
 
-class ContextWrapper(object):
-    """ This is a simple wrapper around enter
-    and exit functions that conforms to the pyhton
-    context manager protocol:
-
-    with ContextWrapper(enter, leave):
-        do_something()
-    """
-
-    def __init__(self, enter=None, leave=None, factory=None):
-        self._enter = enter
-        self._leave = leave
-        self._factory = factory
-
-    def __enter__(self):
-        if self.enter: self._enter()
-        return self if not self._factory else self._factory()
-
-    def __exit__(self, args):
-        if self._leave: self._leave()
-
-
 class ReadWriteLock(object):
     """ This reader writer lock guarantees write order, but not
     read order and is generally biased towards allowing writes
@@ -97,7 +75,8 @@ class ReadWriteLock(object):
             self.writer = False                            # give up current writing handle
             if self.queue:                                 # if someone is waiting in the queue
                 self.queue[0].notify_all()                 # wake them up first
-            else: self.read_condition.notify_all()         # otherwise wake up all possible readers
+            else:
+                self.read_condition.notify_all()         # otherwise wake up all possible readers
 
     @contextmanager
     def get_reader_lock(self):
