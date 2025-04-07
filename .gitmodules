@@ -1,3 +1,0 @@
-[submodule "fanuc_ros2_drivers"]
-	path = fanuc_ros2_drivers
-	url = https://github.com/flightcontrol40/fanuc_ros2_drivers.git
