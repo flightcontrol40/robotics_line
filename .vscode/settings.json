@@ -3,5 +3,6 @@
         "datablock",
         "Modbus",
         "Pymodbus"
-    ]
+    ],
+    "ros.distro": "humble"
 }
