@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-import sys
 import os
-import rclpy
+import sys
 
 import dependencies.FANUCethernetipDriver as FANUCethernetipDriver
-
+import rclpy
 from dependencies.robot_controller import robot
 from fanuc_interfaces.msg import CurCartesian
 from rclpy.node import Node
@@ -30,8 +29,8 @@ class current_cartesian(Node):
         self.timer = self.create_timer(timer_period, self.timer_callback)
 
     def timer_callback(self):
-        msg = CurCartesian()                                          
-        msg.pose = self.bot.read_current_cartesian_pose()                                  
+        msg = CurCartesian()
+        msg.pose = self.bot.read_current_cartesian_pose()
         self.publisher_.publish(msg)
         if FANUCethernetipDriver.DEBUG:
         	self.get_logger().info('Publishing: ' % msg.pose)

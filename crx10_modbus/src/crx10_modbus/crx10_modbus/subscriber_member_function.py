@@ -1,0 +1,132 @@
+# Copyright 2016 Open Source Robotics Foundation, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import asyncio
+
+import rclpy
+from fanuc_interfaces.msg import CurCartesian
+from modbus_interfaces.msg import CellStatus
+from pymodbus.device import ModbusDeviceIdentification
+from rclpy.action import ActionClient
+from rclpy.node import Node
+from rclpy.subscription import Subscription
+from std_msgs.msg import String
+
+from .modbus import CRX10Mapper, CRX10ModbusServer, PosData
+
+rclpy.init()
+node = rclpy.create_node('async_subscriber')
+
+server = CRX10ModbusServer()
+
+def subscriber(type, topic, qos=10):
+    def functor(async_function):
+        node.create_subscription(type, topic, async_function, qos)
+    return functor
+
+@subscriber(CurCartesian, '/beaker/cur_cartesian')
+async def my_test_listener(msg: CurCartesian):
+    node.get_logger().info(f'Got Pos: {msg.pose}')
+    server.mapper.position = PosData(msg.pose)
+
+
+def main():
+    future = asyncio.wait([ros_loop(), modbus_loop()])
+    asyncio.get_event_loop().run_until_complete(future)
+
+async def modbus_loop():
+    server.init_server()
+    await server.server.serve_forever()
+
+
+async def ros_loop():
+    print("Node started.")
+    while rclpy.ok():
+        rclpy.spin_once(node, timeout_sec=0)
+        await asyncio.sleep(1e-4)
+
+
+
+
+# class ModbusServer(Node):
+
+#     message_queue = asyncio.Queue()
+
+#     def __init__(self):
+#         super().__init__("modbus_server")
+#         self._cur_cart = self.create_subscription(
+#             CurCartesian,
+#             '/beaker/cur_cartesian',
+#             self._cur_cart_callback,
+#             10
+#         )
+#         self._cell_status = self.create_subscription(
+#             CurCartesian,
+#             '/beaker/cell_status',
+#             self._cell_status_callback,
+#             10
+#         )
+
+#     def setup_modbus_server(self):
+#         self.host = ''
+#         self.port = 5021
+#         self.identity = ModbusDeviceIdentification(
+#                 info_name={
+#                     "VendorName": "UofI-CDACS",
+#                     "ProductCode": "CDACSCR10",
+#                     "VendorUrl": "https://github.com/UofI-CDACS",
+#                     "ProductName": "CRX10 Modbus Server",
+#                     "ModelName": "CRX10 Modbus Server",
+#                 }
+#             )
+#         self.mapper = CRX10Mapper()
+#         self.server = ModbusTcpServer(
+#             context=self.mapper.server_context,  # Data storage
+#             identity=self.identity,  # server identify
+#             address=(self.host, self.port),  # listen address
+#             framer="socket",  # The framer strategy to use
+#         )
+        
+#     async def serve_forever(self):
+#         await self.server.serve_forever()
+
+#     def _cur_cart_callback(self, msg: CurCartesian):
+#         self.get_logger().info(f"Calling mapper with pose: {msg.pose}")
+#         self.mapper.position = PosData(msg.pose)
+
+#     def _cell_status_callback(self, msg: CellStatus):
+#         pass
+
+
+# async def ros_loop(node: ModbusServer):
+#     while rclpy.ok():
+#         rclpy.spin_once(node, timeout_sec=0)
+#         await asyncio.sleep(1e-4)
+
+# async def modbus_async(node: ModbusServer):
+#     print('Node started.')
+#     node.setup_modbus_server()
+#     await node.serve_forever()
+
+
+# def main(args=None):
+#     node = ModbusServer()
+#     future = asyncio.wait([ros_loop(node), modbus_async(node)])
+#     asyncio.get_event_loop().run_until_complete(future)
+
+# if __name__ == "__main__":
+#     main()
+
+
+

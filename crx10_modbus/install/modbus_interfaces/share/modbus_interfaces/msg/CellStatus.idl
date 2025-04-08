@@ -1,0 +1,45 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from modbus_interfaces/msg/CellStatus.msg
+// generated code does not contain a copyright notice
+
+
+module modbus_interfaces {
+  module msg {
+    struct CellStatus {
+      @verbatim (language="comment", text=
+        "33013  State Indicator")
+      @default (value=-1)
+      int8 process_state;
+
+      @verbatim (language="comment", text=
+        "33014  Error Code")
+      @default (value=-1)
+      int8 error_code;
+
+      @verbatim (language="comment", text=
+        "13005  1 Error, 0 Ok")
+      @default (value=-1)
+      int8 error_state;
+
+      @verbatim (language="comment", text=
+        "13006  1 Die Detected, 0 Not Detected")
+      @default (value=-1)
+      int8 dice_detected_qa;
+
+      @verbatim (language="comment", text=
+        "13007  1 QA Pass, 0 QA Fail")
+      @default (value=-1)
+      int8 dice_qa_pass;
+
+      @verbatim (language="comment", text=
+        "13008  1 Getting Dice Replacement, 0 No QA Action")
+      @default (value=-1)
+      int8 dice_qa_replace;
+
+      @verbatim (language="comment", text=
+        "13009  1 Ready to Handoff, 0 Not Ready")
+      @default (value=-1)
+      int8 hand_off_state;
+    };
+  };
+};

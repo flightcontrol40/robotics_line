@@ -21,6 +21,7 @@
 # Imports
 import math
 import typing
+
 from . import FANUCethernetipDriver
 
 ## The mode of operation; 
@@ -132,7 +133,7 @@ class robot:
 
     # read current cartesian position from Robot
     def read_current_cartesian_pose(self) -> list[float]:
-        """! Print current cartesian coordinates from robot. Returns [X, Y, Z, W, P, R]
+        """! Print current cartesian coordinates from robot. Returns [X, Y, Z, W, P, R, T1, T2, T3]
         """
         # print("--------------------------")
         # print("| read CURPOS from Robot |")
@@ -140,7 +141,7 @@ class robot:
         CurPosList = FANUCethernetipDriver.returnCartesianCurrentPostion(self.robot_IP)
 
         #print("CURPOS=", CurPosList)
-        return CurPosList[2:8]
+        return CurPosList[2:10]
 
 
     # write PR[1] Cartesian Coordinates
