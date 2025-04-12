@@ -1,0 +1,4 @@
+Log file created at: 2025/04/10 17:31:29
+Running on machine: NathanFramwork
+Log line format: [IWEF]mmdd hh:mm:ss.uuuuuu threadid file:line] msg
+E0410 17:31:29.505506 198457 MVCAMAPI.cpp:369] CameraInit Failed, err:-14,Version:2.1.0.49,FriendlyName:HT-GE134GC-T1P-C,SN:054012620021

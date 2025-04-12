@@ -30,7 +30,6 @@ def main_loop():
 
 	# 获取相机特性描述
 	cap = mvsdk.CameraGetCapability(hCamera)
-	print(cap)
 
 	# 判断是黑白相机还是彩色相机
 	monoCamera = (cap.sIspCapacity.bMonoSensor != 0)
