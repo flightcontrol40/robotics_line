@@ -1,4 +1,4 @@
-﻿#include "CameraApi.h" //相机SDK的API头文件
+#include "CameraApi.h" //相机SDK的API头文件
 
 #include "opencv2/core/core.hpp"
 #include "opencv2/highgui/highgui.hpp"
