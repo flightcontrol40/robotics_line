@@ -96,7 +96,6 @@ def rotate_v(robot: robot, data: dict):
     time.sleep(0.5)
     robot.write_joint_pose(data["convAbove2"])
 
-
 def rotate_h(robot: robot, data: dict):
     robot.write_joint_pose(data["convHOffset"])
     robot.write_joint_pose(data["hPlace"])
@@ -137,7 +136,6 @@ def capture_face(robot, data, face):
                 print(f"comm Error!: {e}")
                 time.sleep(.5)
                 continue
-
 
 def cycle(robot: robot, data: dict):
     for i in range(4):
