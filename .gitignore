@@ -1,0 +1,22 @@
+.win-venv/
+
+# Auto generated files
+*.pyc
+*.pyo
+*.pyd
+*.pdb
+*.pkl
+*.egg
+*.egg-info
+*.whl
+*.dist-info
+*.db
+*.sqlite3
+*.log
+
+# Camera/
+*.mvdat
+
+*chm
+*chw
+camera/dump
