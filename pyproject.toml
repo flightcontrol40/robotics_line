@@ -10,11 +10,13 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "asyncio>=3.4.3",
+    "numpy<2",
     "opencv-python>=4.11.0.86",
     "pycomm3>=1.2.14",
     "pydantic>=2.11.1",
     "pymodbus>=3.8.6",
     "pyyaml>=6.0.2",
+    "setuptools>=78.1.0",
 ]
 
 [dependency-groups]

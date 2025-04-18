@@ -5,11 +5,13 @@ Summary: Add your description here
 Requires-Python: >=3.10
 Description-Content-Type: text/markdown
 Requires-Dist: asyncio>=3.4.3
+Requires-Dist: numpy<2
 Requires-Dist: opencv-python>=4.11.0.86
 Requires-Dist: pycomm3>=1.2.14
 Requires-Dist: pydantic>=2.11.1
 Requires-Dist: pymodbus>=3.8.6
 Requires-Dist: pyyaml>=6.0.2
+Requires-Dist: setuptools>=78.1.0
 
 # robotics_line
 
