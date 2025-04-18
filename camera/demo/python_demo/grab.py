@@ -57,7 +57,7 @@ def main():
 		val = input("Take Image (Y/N): ")
 		val == val.strip().upper()
 		if val in ["", " ", None, "Y", 'y']:
-			print(f"Taking Image: {f"./img_{image_number:02d}.bmp"}")
+			print(f"Taking Image: ./img_{int(image_number)}.bmp")
 			try:
 				pRawData, FrameHead = mvsdk.CameraGetImageBuffer(hCamera, 2000)
 				mvsdk.CameraImageProcess(hCamera, pRawData, pFrameBuffer, FrameHead)
@@ -65,7 +65,7 @@ def main():
 				
 				# 此时图片已经存储在pFrameBuffer中，对于彩色相机pFrameBuffer=RGB数据，黑白相机pFrameBuffer=8位灰度数据
 				# 该示例中我们只是把图片保存到硬盘文件中
-				status = mvsdk.CameraSaveImage(hCamera, f"./img_{image_number:02d}.bmp", pFrameBuffer, FrameHead, mvsdk.FILE_BMP, 100)
+				status = mvsdk.CameraSaveImage(hCamera, f"./img_{int(image_number)}.bmp", pFrameBuffer, FrameHead, mvsdk.FILE_BMP, 100)
 				if status == mvsdk.CAMERA_STATUS_SUCCESS:
 					print("Save image successfully. image_size = {}X{}".format(FrameHead.iWidth, FrameHead.iHeight) )
 				else:
