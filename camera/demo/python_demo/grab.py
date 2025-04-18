@@ -52,23 +52,29 @@ def main():
 	# 分配RGB buffer，用来存放ISP输出的图像
 	# 备注：从相机传输到PC端的是RAW数据，在PC端通过软件ISP转为RGB数据（如果是黑白相机就不需要转换格式，但是ISP还有其它处理，所以也需要分配这个buffer）
 	pFrameBuffer = mvsdk.CameraAlignMalloc(FrameBufferSize, 16)
-
-	# 从相机取一帧图片
-	try:
-		pRawData, FrameHead = mvsdk.CameraGetImageBuffer(hCamera, 2000)
-		mvsdk.CameraImageProcess(hCamera, pRawData, pFrameBuffer, FrameHead)
-		mvsdk.CameraReleaseImageBuffer(hCamera, pRawData)
-		
-		# 此时图片已经存储在pFrameBuffer中，对于彩色相机pFrameBuffer=RGB数据，黑白相机pFrameBuffer=8位灰度数据
-		# 该示例中我们只是把图片保存到硬盘文件中
-		status = mvsdk.CameraSaveImage(hCamera, "./grab.bmp", pFrameBuffer, FrameHead, mvsdk.FILE_BMP, 100)
-		if status == mvsdk.CAMERA_STATUS_SUCCESS:
-			print("Save image successfully. image_size = {}X{}".format(FrameHead.iWidth, FrameHead.iHeight) )
+	image_number = 0
+	while True:
+		val = input("Take Image (Y/N): ")
+		val == val.strip().upper()
+		if val in ["", " ", None, "Y", 'y']:
+			print(f"Taking Image: {f"./img_{image_number:02d}.bmp"}")
+			try:
+				pRawData, FrameHead = mvsdk.CameraGetImageBuffer(hCamera, 2000)
+				mvsdk.CameraImageProcess(hCamera, pRawData, pFrameBuffer, FrameHead)
+				mvsdk.CameraReleaseImageBuffer(hCamera, pRawData)
+				
+				# 此时图片已经存储在pFrameBuffer中，对于彩色相机pFrameBuffer=RGB数据，黑白相机pFrameBuffer=8位灰度数据
+				# 该示例中我们只是把图片保存到硬盘文件中
+				status = mvsdk.CameraSaveImage(hCamera, f"./img_{image_number:02d}.bmp", pFrameBuffer, FrameHead, mvsdk.FILE_BMP, 100)
+				if status == mvsdk.CAMERA_STATUS_SUCCESS:
+					print("Save image successfully. image_size = {}X{}".format(FrameHead.iWidth, FrameHead.iHeight) )
+				else:
+					print("Save image failed. err={}".format(status) )
+			except mvsdk.CameraException as e:
+				print("CameraGetImageBuffer failed({}): {}".format(e.error_code, e.message) )
 		else:
-			print("Save image failed. err={}".format(status) )
-	except mvsdk.CameraException as e:
-		print("CameraGetImageBuffer failed({}): {}".format(e.error_code, e.message) )
-
+			break
+		image_number += 1
 	# 关闭相机
 	mvsdk.CameraUnInit(hCamera)
 
