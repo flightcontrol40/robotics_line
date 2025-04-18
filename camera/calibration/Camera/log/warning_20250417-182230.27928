@@ -1,0 +1,4 @@
+Log file created at: 2025/04/17 18:22:30
+Running on machine: NathanFramwork
+Log line format: [IWEF]mmdd hh:mm:ss.uuuuuu threadid file:line] msg
+W0417 18:22:30.952843 28022 CameraGigeBase.cpp:4521] Device:(name:HT-GE134GC-T1P-C sn:054012620021 cam:172.29.208.7-1000-1400 nic:eth1-172.29.208.24-10000M-1500)ReConnected, TolCount:1, Flag:1

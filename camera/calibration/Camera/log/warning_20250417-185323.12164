@@ -1,0 +1,4 @@
+Log file created at: 2025/04/17 18:53:23
+Running on machine: NathanFramwork
+Log line format: [IWEF]mmdd hh:mm:ss.uuuuuu threadid file:line] msg
+W0417 18:53:23.532044 12255 CameraGigeBase.cpp:4521] Device:(name:Thomas the Dank Engine sn:054012620021 cam:172.29.208.7-1000-1400 nic:eth1-172.29.208.24-10000M-1500)ReConnected, TolCount:1, Flag:1
