@@ -8,9 +8,9 @@ import cv2 as cv
 import numpy as np
 import pycomm3
 import yaml
+from robot_controller import robot
 
 from camera import CheepAssChineseCamera
-from robot_controller import robot
 
 ARM_POS = Path(__file__).parent / "training2.yaml"
 
@@ -24,7 +24,7 @@ BASE_POS = [
 ]
 
 OUTPUT_PATH = Path("output/newest")
-
+OUTPUT_PATH.mkdir(parents=True,exist_ok=True)
 AVG_Z = -130.1991424560547
 
 def learning():
@@ -129,6 +129,7 @@ def random_place():
                 r.write_cartesian_position(rand_pos)
                 # Take Photo
                 take_photo(store_place_location, camera)
+                time.sleep(1)
                 rand_pos = copy(store_place_location)
                 r.write_cartesian_position(rand_pos)
                 rand_pos[2] = z_cord
@@ -141,6 +142,8 @@ def random_place():
             input("Rotate and Continue:")
     finally:
         camera.release_camera()
+
+        pass
 
 def take_photo(cords, camera):
     img_number = 0
@@ -163,18 +166,6 @@ def take_photo(cords, camera):
     with open(cord_file, 'w') as fd:
         fd.write(str(cords))
 
-
-
-    # while True:
-        # tmp = cv.imread(output_file)
-        # tmp = cv.circle(tmp, (x,y), radius=0, color=(0, 0, 255), thickness=-1)
-        # cv.waitKey(1)
-        # crop = input("Crop: ")
-        # if crop in ["", " ", None]:
-        #     cv.imwrite(str(output_file), temp)
-        # else:
-        #     x1,x2,y1,y2 = crop.split(" ")
-        #     temp = frame[y1:y2, x1:x2]
 
 
 # Assuming dice is in hand
@@ -256,10 +247,20 @@ def main():
 
     cycle(r, data)
 
+def camera_test():
+    camera = CheepAssChineseCamera()
+    camera.start_camera()
+
+    for i in range(5):
+        img = camera.get_frame()
+        cv.imwrite(f"test_{i}.png",img)
+    camera.release_camera()
+
 
 if __name__ == "__main__":
     # main()
     # learning()
     random_place()
+    # camera_test()
     # [ 19.348966598510742 25.419536590576172 -59.648879652366155 -106.83952826778284 -78.25675079659895 -177.95411682128906
     # ]

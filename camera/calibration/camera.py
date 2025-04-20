@@ -45,9 +45,9 @@ class CheepAssChineseCamera:
 
             nDev = len(DevList)
             if nDev < 1:
-                # if attempts > 5:
-                    # raise CameraConnectionError("No camera was found!")
-                # else:
+                if attempts > 5:
+                    raise CameraConnectionError("No camera was found!")
+                else:
                     attempts+=1
                     print(f"Failed to connect to camera: {attempts}, Trying again")
             else:
@@ -61,21 +61,32 @@ class CheepAssChineseCamera:
         self.cap = mvsdk.CameraGetCapability(self.hCamera)
         mvsdk.CameraSetIspOutFormat(self.hCamera, mvsdk.CAMERA_MEDIA_TYPE_BGR8)
         mvsdk.CameraSetTriggerMode(self.hCamera, 0)
-        # mvsdk.CameraSetAeState(self.hCamera, 0)
-        # mvsdk.CameraSetExposureTime(self.hCamera, 30 * 1000)
 
         self.FrameBufferSize = self.cap.sResolutionRange.iWidthMax * self.cap.sResolutionRange.iHeightMax *  3
-        # mvsdk.CameraSetDenoise3DParams(self.hCamera,True, 3, 0)
         mvsdk.CameraPlay(self.hCamera)
+        # mvsdk.CameraSaveParameterToFile(self.hCamera, "test_settings.txt")
+        mvsdk.CameraReadParameterFromFile(self.hCamera, "test_settings.txt")
+        mvsdk.CameraSetAeState(self.hCamera, 0)
+        mvsdk.CameraSetAeTarget(self.hCamera, 83)
+        mvsdk.CameraSetAntiFlick(self.hCamera, 1)
+        mvsdk.CameraSetGamma(self.hCamera, 89)
+        mvsdk.CameraSetContrast(self.hCamera, 91)
 
-        mvsdk.CameraReadParameterFromFile(self.hCamera, "new_cam_settings.txt")
-        self.pFrameBuffer = mvsdk.CameraAlignMalloc(self.FrameBufferSize, 16)
+        mvsdk.CameraSetSharpness(self.hCamera, 20)
+        mvsdk.CameraSetDenoise3DParams(self.hCamera,True, 3, 0)
+        mvsdk.CameraSetOnceWB(self.hCamera)
+
+
+
+        print(f"SHARPNESS: {mvsdk.CameraGetSharpness(self.hCamera)}")
 
         self._opened = True
 
     def release_camera(self):
         mvsdk.CameraUnInit(self.hCamera)
-        mvsdk.CameraAlignFree(self.pFrameBuffer)
+        if hasattr(self, "pFrameBuffer"):
+
+            mvsdk.CameraAlignFree(self.pFrameBuffer)
         self._opened = False
 
     def get_frame(self):
@@ -83,15 +94,15 @@ class CheepAssChineseCamera:
         while True:
             if self._opened:
                 try:
-                    # for i in range(4):
-                    self.pFrameBuffer = mvsdk.CameraAlignMalloc(self.FrameBufferSize, 16)
-                    pRawData, FrameHead = mvsdk.CameraGetImageBuffer(self.hCamera, 200)
-                    mvsdk.CameraImageProcess(self.hCamera, pRawData, self.pFrameBuffer, FrameHead)
-                    mvsdk.CameraReleaseImageBuffer(self.hCamera, pRawData)
+                    for i in range(4):
+                        self.pFrameBuffer = mvsdk.CameraAlignMalloc(self.FrameBufferSize, 16)
+                        self.pRawData, FrameHead = mvsdk.CameraGetImageBuffer(self.hCamera, 200)
+                        mvsdk.CameraImageProcess(self.hCamera, self.pRawData, self.pFrameBuffer, FrameHead)
+                        mvsdk.CameraReleaseImageBuffer(self.hCamera, self.pRawData)
 
-                    frame_data = (mvsdk.c_ubyte * FrameHead.uBytes).from_address(self.pFrameBuffer)
-                    frame = np.frombuffer(frame_data, dtype=np.uint8)
-                    frame = frame.reshape((FrameHead.iHeight, FrameHead.iWidth, 3 ))
+                        frame_data = (mvsdk.c_ubyte * FrameHead.uBytes).from_address(self.pFrameBuffer)
+                        frame = np.frombuffer(frame_data, dtype=np.uint8)
+                        frame = frame.reshape((FrameHead.iHeight, FrameHead.iWidth, 3 ))
                     return frame
 
                 except mvsdk.CameraException as e:

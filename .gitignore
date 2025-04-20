@@ -19,4 +19,5 @@
 
 *chm
 *chw
-camera/dump
+camera/calibration/output
+__pycache__/

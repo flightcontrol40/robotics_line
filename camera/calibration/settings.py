@@ -5,12 +5,13 @@ import numpy as np
 window_name = "image"
 
 cv2.namedWindow(window_name,cv2.WINDOW_NORMAL)
-
-DevList = mvsdk.CameraEnumerateDevice()
-nDev = len(DevList)
-if nDev < 1:
-    print("No camera was found!")
-    exit()
+while True:
+    DevList = mvsdk.CameraEnumerateDevice()
+    nDev = len(DevList)
+    if nDev < 1:
+        print("No camera was found!")
+    else:
+        break
 
 for i, DevInfo in enumerate(DevList):
     print("{}: {} {}".format(i, DevInfo.GetFriendlyName(), DevInfo.GetPortType()))
