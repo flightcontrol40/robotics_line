@@ -14,6 +14,8 @@
 *.sqlite3
 *.log
 
+__pycache__/
+
 # Camera/
 *.mvdat
 
