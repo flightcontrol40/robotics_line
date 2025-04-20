@@ -12,6 +12,9 @@ Requires-Dist: pydantic>=2.11.1
 Requires-Dist: pymodbus>=3.8.6
 Requires-Dist: pyyaml>=6.0.2
 Requires-Dist: setuptools>=78.1.0
+Requires-Dist: torchaudio>=2.6.0
+Requires-Dist: torchvision>=0.21.0
+Requires-Dist: ultralytics>=8.3.111
 
 # robotics_line
 

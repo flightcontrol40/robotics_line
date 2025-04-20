@@ -6,3 +6,6 @@ pydantic>=2.11.1
 pymodbus>=3.8.6
 pyyaml>=6.0.2
 setuptools>=78.1.0
+torchaudio>=2.6.0
+torchvision>=0.21.0
+ultralytics>=8.3.111

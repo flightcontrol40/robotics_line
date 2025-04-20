@@ -17,9 +17,30 @@ dependencies = [
     "pymodbus>=3.8.6",
     "pyyaml>=6.0.2",
     "setuptools>=78.1.0",
+    "torchaudio>=2.6.0",
+    "torchvision>=0.21.0",
+    "ultralytics>=8.3.111",
 ]
 
 [dependency-groups]
 dev = [
     "labelimg>=1.8.6",
+]
+
+
+[[tool.uv.index]]
+name = "pytorch-cu126"
+url = "https://download.pytorch.org/whl/cu126"
+explicit = true
+
+
+[tool.uv.sources]
+torch = [
+  { index = "pytorch-cu126", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+torchvision = [
+  { index = "pytorch-cu126", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+torchaudio = [
+  { index = "pytorch-cu126", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
