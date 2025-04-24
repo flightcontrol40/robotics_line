@@ -3,9 +3,16 @@ from __future__ import print_function
 import argparse
 import random as rng
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import cv2 as cv
 import numpy as np
+
+if TYPE_CHECKING:
+    from .camera import CheepAssChineseCamera
+else:
+    from camera import CheepAssChineseCamera
+
 
 rng.seed(12345)
 SHOW_CANNY = False
@@ -19,6 +26,13 @@ HSV_MIN = np.array([40, 138, 1])
 HSV_MAX = np.array([255, 255, 102])
 COLOR_MASK = np.zeros((300, 512, 3), np.uint8)
 
+def get_image():
+    global IMAGE
+    if callable(IMAGE):
+        
+        return IMAGE()
+    else:
+        return IMAGE
 
 def thresh_callback(val):
     threshold = val
@@ -28,19 +42,19 @@ def thresh_callback(val):
         X_BLUR, \
         Y_BLUR, \
         IMAGE_GRAYSCALE, \
-        IMAGE, \
         CIRCLE_DIST, \
         HSV_MIN, \
         HSV_MAX, \
         COLOR_MASK
-
+    image = get_image()
+    cv.imshow(source_window, image)
+    output = image.copy()
     m1 = cv.Canny(COLOR_MASK, 50, 100)
     contours_1, hierarchy = cv.findContours(
         m1, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE
     )
-    cv.imshow("MASK", m1)
 
-    output = IMAGE.copy()
+    cv.imshow("MASK", m1)
 
     bound_rect: list[cv.typing.Rect] = []
     for i, c in enumerate(contours_1):
@@ -207,24 +221,27 @@ def nothing(x):
 parser = argparse.ArgumentParser(
     description="Code for Creating Bounding boxes and circles for contours tutorial."
 )
-parser.add_argument("input", help="Path to input image.")
+parser.add_argument("--input", help="Path to input image.")
 args = parser.parse_args()
 
+
 if args.input is None:
-    print("Could not open or find the image:", args.input)
-    exit(0)
+    cam = CheepAssChineseCamera()
+    cam.start_camera()
+    IMAGE = cam.get_frame
+    # print("Could not open or find the image:", args.input)
+    # exit(0)
 
-img_path = Path(args.input)
-
-src = cv.imread(str(img_path))
-IMAGE = src
+else:
+    img_path = Path(args.input)
+    src = cv.imread(str(img_path))
+    IMAGE = src
 
 # Convert image to gray and blur it
-IMAGE_GRAYSCALE = cv.cvtColor(IMAGE, cv.COLOR_BGR2GRAY)
+IMAGE_GRAYSCALE = cv.cvtColor(get_image(), cv.COLOR_BGR2GRAY)
 
 source_window = "Source"
 cv.namedWindow(source_window, cv.WINDOW_NORMAL)
-cv.imshow(source_window, IMAGE)
 max_thresh = 255
 thresh = 125  # initial threshold
 
@@ -245,8 +262,18 @@ cv.createTrackbar("Blur-y:", source_window, 0, 100, blur_y_callback)
 cv.createTrackbar("Show Canny", source_window, 0, 1, show_canny_callback)
 
 
-image_hsv = cv.cvtColor(IMAGE,cv.COLOR_BGR2HSV)
+image_hsv = cv.cvtColor(get_image(), cv.COLOR_BGR2HSV)
 cv.setMouseCallback(source_window, pick_color)
 nothing(0)
 thresh_callback(thresh)
-cv.waitKey()
+
+while True:
+    image = get_image()
+    k = cv.waitKey(1)
+    if k == ord("q"):
+        break
+
+try:
+    cam.release_camera()
+except Exception:
+    pass

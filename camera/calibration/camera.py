@@ -45,9 +45,9 @@ class CheepAssChineseCamera:
 
             nDev = len(DevList)
             if nDev < 1:
-                # if attempts > 5:
-                    # raise CameraConnectionError("No camera was found!")
-                # else:
+                if attempts > 5:
+                    raise CameraConnectionError("No camera was found!")
+                else:
                     attempts+=1
                     print(f"Failed to connect to camera: {attempts}, Trying again")
             else:
@@ -68,9 +68,7 @@ class CheepAssChineseCamera:
         # mvsdk.CameraSetDenoise3DParams(self.hCamera,True, 3, 0)
         mvsdk.CameraPlay(self.hCamera)
 
-        mvsdk.CameraReadParameterFromFile(self.hCamera, "new_cam_settings.txt")
-        self.pFrameBuffer = mvsdk.CameraAlignMalloc(self.FrameBufferSize, 16)
-
+        mvsdk.CameraReadParameterFromFile(self.hCamera, "/home/nathan/robotics_line/camera/calibration/new_cam_settings.txt")
         self._opened = True
 
     def release_camera(self):
@@ -85,9 +83,9 @@ class CheepAssChineseCamera:
                 try:
                     # for i in range(4):
                     self.pFrameBuffer = mvsdk.CameraAlignMalloc(self.FrameBufferSize, 16)
-                    pRawData, FrameHead = mvsdk.CameraGetImageBuffer(self.hCamera, 200)
-                    mvsdk.CameraImageProcess(self.hCamera, pRawData, self.pFrameBuffer, FrameHead)
-                    mvsdk.CameraReleaseImageBuffer(self.hCamera, pRawData)
+                    self.pRawData, FrameHead = mvsdk.CameraGetImageBuffer(self.hCamera, 200)
+                    mvsdk.CameraImageProcess(self.hCamera, self.pRawData, self.pFrameBuffer, FrameHead)
+                    mvsdk.CameraReleaseImageBuffer(self.hCamera, self.pRawData)
 
                     frame_data = (mvsdk.c_ubyte * FrameHead.uBytes).from_address(self.pFrameBuffer)
                     frame = np.frombuffer(frame_data, dtype=np.uint8)

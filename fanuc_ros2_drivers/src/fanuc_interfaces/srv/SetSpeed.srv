@@ -1,4 +1,0 @@
-# Set the movement speed of the robot. Should be in the range of [0, 300]
-int32 speed
----
-bool success # completed task

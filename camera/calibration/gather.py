@@ -12,7 +12,7 @@ import yaml
 from camera import CheepAssChineseCamera
 from robot_controller import robot
 
-ARM_POS = Path(__file__).parent / "training2.yaml"
+ARM_POS = Path(__file__).parent / "pos2.yaml"
 
 BASE_POS = [
     78.920166015625,
@@ -259,7 +259,7 @@ def main():
 
 if __name__ == "__main__":
     # main()
-    # learning()
-    random_place()
+    learning()
+    # random_place()
     # [ 19.348966598510742 25.419536590576172 -59.648879652366155 -106.83952826778284 -78.25675079659895 -177.95411682128906
     # ]

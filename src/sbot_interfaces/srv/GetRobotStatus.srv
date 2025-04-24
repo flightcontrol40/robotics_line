@@ -1,0 +1,6 @@
+# Request
+---
+# Response
+int32 state  # current robot state
+bool has_dice # if robot has dice 
+bool success  # True if query was successful

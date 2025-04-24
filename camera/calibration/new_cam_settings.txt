@@ -48,21 +48,21 @@ resolution :
 };
 exposure : 
 {
-  anti_flick_freq = 0;
-  anti_flick = false;
+  anti_flick_freq = 60;
+  anti_flick = true;
   show_ae_window = false;
   ae_window_height = 0;
   ae_window_width = 0;
   ae_window_voff = 0;
   ae_window_hoff = 0;
-  analog_gain = 5;
-  exp_time = 30000.0;
+  analog_gain = 3;
+  exp_time = 12000.0;
   ae_target = 120;
   ae_enable = false;
-  user_exposure_time = 30000.0;
+  user_exposure_time = 12000.0;
   user_ae_min_exposure_time = 0.0;
   user_ae_max_exposure_time = 10000000.0;
-  user_ae_min_analog_gain = 5;
+  user_ae_min_analog_gain = 3;
   user_ae_max_analog_gain = 33;
   ae_threshold = 10;
 };
@@ -131,13 +131,13 @@ isp_shape :
   hd_flip_h = false;
   hd_flip_v = false;
   rotate_dir = 0;
-  sharpness = 0;
+  sharpness = 20;
   defect_corr = true;
   defect_file_path = "";
   flat_fielding_corr_enable = true;
   flat_fielding_corr_param_file_path = "";
   denoise3d_use_weight = false;
-  denoise3d_enable = true;
+  denoise3d_enable = false;
   denoise3d_length = 3;
   undistort : 
   {

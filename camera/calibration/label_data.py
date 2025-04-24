@@ -1,3 +1,4 @@
+import json
 import random
 import shutil
 from pathlib import Path
@@ -5,10 +6,10 @@ from pathlib import Path
 import cv2 as cv
 import numpy as np
 
-IMAGES_DIR = Path(r"C:\Users\natha\Documents\robotics_line\camera\calibration\dataset_full\dataset")
-OUTPUT_COMBINED = Path(r"C:\Users\natha\Documents\robotics_line\Camera\calibration\output\combined")
+IMAGES_DIR = Path(r"/home/nathan/robotics_line/camera/calibration/output/newest2/newest")
+OUTPUT_COMBINED = Path(r"/home/nathan/robotics_line/camera/calibration/output/combined")
 OUTPUT_COMBINED.mkdir(parents=True, exist_ok=True)
-DATASET_DIR = Path(r"C:\Users\natha\Documents\robotics_line\camera\calibration\dataset\images")
+DATASET_DIR = Path(r"/home/nathan/robotics_line/camera/calibration/output/dataset")
 
 HSV_THRESH = (124, 93, 0, 255, 255, 96)
 # HSV_MAX = (HSV_THRESH[0], HSV_THRESH[1], HSV_THRESH[2])
@@ -27,20 +28,20 @@ def _get_area(bound_rect):
     area = w1*h1
     return area
 
-def get_bounding_box(path: Path):
+def get_bounding_box(path: Path, normalized = True):
 
     # This function should return the bounding box of the object in the image
     img = cv.imread(str(path), cv.IMREAD_COLOR_BGR)
-    # cv.imshow("original", img)
+    cv.imshow("original", img)
     image_hsv = cv.cvtColor(img, cv.COLOR_BGR2HSV)
-    # cv.imshow("hsv", image_hsv)
+    cv.imshow("hsv", image_hsv)
     image_mask = cv.inRange(image_hsv, HSV_MIN, HSV_MAX)
-    # cv.imshow("mask", image_mask)
+    cv.imshow("mask", image_mask)
     m1 = cv.Canny(image_mask, 10, 20)
     contours, hierarchy = cv.findContours(
         m1, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE
     )
-    # cv.imshow("canny",m1)
+    cv.imshow("canny",m1)
     height, width, channels = img.shape
 
     output = img.copy()
@@ -102,15 +103,47 @@ def get_bounding_box(path: Path):
         (0, 0, 0),
         2,
     )
-    center_x, center_y = ( np.average([x1/width, x2/width]), np.average([y1/height, y2/height]))
+    if normalized:
+        center_x, center_y = ( np.average([x1/width, x2/width]), np.average([y1/height, y2/height]))
+    else:
+        center_x, center_y = ( np.average([x1, x2]), np.average([y1, y2]))
+
     cv.imshow("output", output)
     if area < 5000:
         cv.imshow("output", output)
         cv.waitKey(0)
     # Yolo wants class_id x_center y_center width height all normalized
     cords = f"{center_x:.6f} {center_y:.6f} {w1/width:.6f} {h1/height:.6f}"
-    return cords
+    if normalized:
+        return cords
+    else:
+        return [center_x, center_y]
 
+def get_coordinates():
+    set_number = 0
+    current_set = "0"
+    images = list(IMAGES_DIR.glob("**/*.png"))
+    random.shuffle(images)
+    robo_cords_list = []
+    image_cords_list = []
+    for idx, f_path in enumerate(images):
+        cords = get_bounding_box(f_path, normalized=False)
+        robo_cords_file = f_path.parent.parent / "Cords" / (f_path.stem + ".txt") 
+        if not robo_cords_file.exists():
+            raise ValueError()
+        image_cords_list.append(cords[:2])
+        robot_cord = []
+        with open(robo_cords_file, "r") as fd:
+            robot_cord = json.load(fd)
+        if not robot_cord:
+            print(robot_cord)
+            raise ValueError()
+        robo_cords_list.append(robot_cord[:2])
+
+
+    data = {"image_cords": image_cords_list, "robot_cords": robo_cords_list}
+    with open("point_data.json", "w") as fd:
+        json.dump(data, fd, indent=2)
 
 def label_images():
     set_number = 0
@@ -121,7 +154,7 @@ def label_images():
     highest_img_count = 0
     cur_imgs = [int(x.stem.split("_")[-1]) for x in DATASET_DIR.glob("**/*.png")]
     cur_imgs.sort()
-    highest_img_count = int(cur_imgs[-1])
+    highest_img_count = int(cur_imgs[-1]) if len(cur_imgs) > 0 else 0
     print(f'Highest Img Count: {highest_img_count}')
     random.shuffle(images)
     for idx, f_path in enumerate(images):
@@ -129,7 +162,7 @@ def label_images():
         img = f_path.relative_to(IMAGES_DIR)
         print(img)
         print(img.parts)
-
+        cv.waitKey(-1)
         # if img.parts[0] == "1":
         #     new_name = f"one_{img.parts[1].split(".")[0]}"
         # elif img.parts[0] == "2":
@@ -174,9 +207,6 @@ def label_images():
 
 
     # cv.waitKey()
-
-
-
     # shutil.copyfile(
     #     IMAGES_DIR / img,
     #     OUTPUT_COMBINED 
@@ -218,7 +248,11 @@ def shuffle():
     pass
 
 if __name__ == "__main__":
-    shuffle()
+    get_coordinates()
+    
+    # get_bounding_box(Path("/home/nathan/robotics_line/img_0.bmp"))
+    # cv.waitKey(-1)
+    # shuffle()
 
 # temp = Path(r"C:\Users\natha\Documents\robotics_line\camera\calibration\output\tmp")
 # for img in temp.glob("**/*.bmp"):

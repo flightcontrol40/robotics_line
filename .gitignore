@@ -21,3 +21,12 @@ __pycache__/
 
 *chm
 *chw
+log/
+build/
+install/
+uv.lock
+*.egg-info/
+*.egg
+*.egg-info
+camera/calibration/output/
+*.pyc

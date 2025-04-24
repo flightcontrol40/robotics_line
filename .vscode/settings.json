@@ -7,22 +7,23 @@
     "ros.distro": "humble",
     "python.autoComplete.extraPaths": [
         "/opt/ros/humble/lib/python3.10/site-packages",
+        "/opt/ros/humble/lib/python3.13/site-packages",
         "/opt/ros/humble/local/lib/python3.10/dist-packages",
-        "/home/nathan/robotics_line/fanuc_ros2_drivers/install/srv_services/lib/python3.10/site-packages",
-        "/home/nathan/robotics_line/fanuc_ros2_drivers/install/msg_publishers/lib/python3.10/site-packages",
-        "/home/nathan/robotics_line/fanuc_ros2_drivers/install/action_servers/lib/python3.10/site-packages",
-        "/home/nathan/robotics_line/fanuc_ros2_drivers/install/fanuc_interfaces/local/lib/python3.10/dist-packages",
-                "/home/nathan/robotics_line/crx10_modbus/install/crx10_modbus/local/lib/python3.10/dist-packages",
-        "/home/nathan/robotics_line/crx10_modbus/install/modbus_interfaces/local/lib/python3.10/dist-packages"
+        "/opt/ros/humble/local/lib/python3.13/dist-packages",
+        "/home/nathan/robotics_line/install/fanuc_interfaces/lib/python3.13/site-packages/",
+        "/home/nathan/robotics_line/install/fanuc_interfaces/lib/python3.13/site-packages/fanuc_interfaces",
+        "/home/nathan/robotics_line/install/sbot_interfaces/lib/python3.13/site-packages",
     ],
     "python.analysis.extraPaths": [
+        "/opt/ros/humble/lib/python3.13/site-packages",
         "/opt/ros/humble/lib/python3.10/site-packages",
+        "/opt/ros/humble/local/lib/python3.13/dist-packages",
         "/opt/ros/humble/local/lib/python3.10/dist-packages",
-        "/home/nathan/robotics_line/fanuc_ros2_drivers/install/srv_services/lib/python3.10/site-packages",
-        "/home/nathan/robotics_line/fanuc_ros2_drivers/install/msg_publishers/lib/python3.10/site-packages",
-        "/home/nathan/robotics_line/fanuc_ros2_drivers/install/action_servers/lib/python3.10/site-packages",
-        "/home/nathan/robotics_line/fanuc_ros2_drivers/install/fanuc_interfaces/local/lib/python3.10/dist-packages",
         "/home/nathan/robotics_line/crx10_modbus/install/crx10_modbus/local/lib/python3.10/dist-packages",
-        "/home/nathan/robotics_line/crx10_modbus/install/modbus_interfaces/local/lib/python3.10/dist-packages"
+        "/home/nathan/robotics_line/crx10_modbus/install/modbus_interfaces/local/lib/python3.10/dist-packages",
+        "/home/nathan/robotics_line/install/robot_three_interfaces/lib/python3.13/site-packages/robot_three_interfaces",
+        "/home/nathan/robotics_line/install/fanuc_interfaces/lib/python3.13/site-packages",
+        "/home/nathan/robotics_line/install/sbot_interfaces/lib/python3.13/site-packages",
+
     ]
 }
