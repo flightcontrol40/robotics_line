@@ -1,5 +1,5 @@
 .win-venv/
-
+.venv/
 # Auto generated files
 *.pyc
 *.pyo
