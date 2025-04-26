@@ -8,10 +8,10 @@ from sensor_msgs.msg import Image
 from camera_driver.camera import CheepAssChineseCamera
 
 
-class MinimalPublisher(Node):
+class CameraDriver(Node):
 
     def __init__(self):
-        super().__init__('minimal_publisher')
+        super().__init__('CameraDriver')
         self.bridge = CvBridge()
         self.publisher_ = self.create_publisher(
             Image,
@@ -26,7 +26,7 @@ class MinimalPublisher(Node):
 
 
 
-async def camera_loop(node: MinimalPublisher):
+async def camera_loop(node: CameraDriver):
     cam = CheepAssChineseCamera()
     print("Starting camera")
     try:
@@ -47,7 +47,7 @@ async def ros_loop(node):
 def main():
     rclpy.init()
 
-    node = MinimalPublisher()
+    node = CameraDriver()
     future = asyncio.wait([ros_loop(node), camera_loop(node)])
     asyncio.get_event_loop().run_until_complete(future)
 

@@ -9,8 +9,7 @@ from copy import copy
 from dataclasses import dataclass
 from enum import Enum
 from queue import Queue
-from time import sleep
-from typing import Any, TypeAlias
+from typing import Any
 
 import cv2
 import fanuc_interfaces  # noqa: F401
@@ -27,11 +26,9 @@ from fanuc_interfaces.action import (
     Conveyor,
     JointPose,
     SchunkGripper,
-    SJointPose,
 )
 from fanuc_interfaces.msg import ProxReadings
 from fanuc_interfaces.srv import SetSpeed
-from rclpy.action import ActionServer
 from rclpy.action.client import ActionClient
 from rclpy.node import Node
 from sensor_msgs.msg import Image
@@ -39,8 +36,6 @@ from std_msgs.msg import Bool, String
 from ultralytics import YOLO
 
 from sbot_interfaces.msg import RobotStatus  # noqa: F401
-
-from .robot_controller import robot
 
 R2_STATUS_TOPIC = "/Robot2/Status"
 POSITIONS_FILE = "pos_2.yaml"
