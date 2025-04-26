@@ -29,4 +29,5 @@ uv.lock
 *.egg
 *.egg-info
 camera/calibration/output/
+camera/calibration/model/training_data/
 *.pyc
