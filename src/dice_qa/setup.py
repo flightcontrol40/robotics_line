@@ -1,9 +1,6 @@
-import os
-from glob import glob
-
 from setuptools import find_packages, setup
 
-package_name = 'control_node'
+package_name = 'dice_qa'
 
 setup(
     name=package_name,
@@ -11,10 +8,8 @@ setup(
     packages=find_packages(exclude=['test']),
     data_files=[
         ('share/ament_index/resource_index/packages',
-        ['resource/' + package_name]),
+            ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
-        (os.path.join('share', package_name, 'launch'), ["launch/runner.py"]),
-
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -25,7 +20,6 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'runner = control_node.ros_2_demo:main'
         ],
     },
 )

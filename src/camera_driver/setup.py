@@ -7,15 +7,14 @@ package_name = 'camera_driver'
 
 setup(
     name=package_name,
-    version='0.0.1',
-    packages=find_packages(),
+    version='0.0.0',
+    packages=find_packages(exclude=['test']),
     data_files=[
-        # Install marker file in the package index
-        ('share/ament_index/resource_index/packages', ['resource/' + package_name]),
-        # Include our package.xml file
-        (os.path.join('share', package_name), ['package.xml']),
-        # Include all launch files.
-        (os.path.join('share', package_name, 'launch'), glob('launch/*')),
+        ('share/ament_index/resource_index/packages',
+            ['resource/' + package_name]),
+        ('share/' + package_name, ['package.xml']),
+        (os.path.join('share', package_name, 'launch'), glob(os.path.join('launch', '*.py'))),
+
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -26,7 +25,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'my_node = camera_driver.my_node:main'
+            "driver = camera_driver.driver:main",
         ],
     },
 )

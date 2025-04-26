@@ -35,7 +35,7 @@ from rclpy.action import ActionServer
 from rclpy.action.client import ActionClient
 from rclpy.node import Node
 from sensor_msgs.msg import Image
-from std_msgs.msg import Bool
+from std_msgs.msg import Bool, String
 from ultralytics import YOLO
 
 from sbot_interfaces.msg import RobotStatus  # noqa: F401
@@ -103,7 +103,7 @@ class Order:
     order_type: OrderType
     args: Any
 
-class FanucActions(Node):
+class ControlNode(Node):
     def __init__(self, namespace):
         super().__init__("robot")
         # Actions
@@ -112,7 +112,7 @@ class FanucActions(Node):
         self.joints_ac = ActionClient(self, JointPose, f'/{namespace}/joint_pose')
         self.schunk_ac = ActionClient(self, SchunkGripper, f'/{namespace}/schunk_gripper')
         self.speed_sc = self.create_client(SetSpeed, f'{namespace}/set_speed')
-        self.current_step = CurrentState.WAITING_FOR_HANDOFF
+        self._current_step = CurrentState.WAITING_FOR_HANDOFF
         self.order_queue: Queue[Order] = Queue()
         self.processing_command = False
         self.r2_status = RobotStatus(state=-1)
@@ -153,13 +153,37 @@ class FanucActions(Node):
             self._image_callback,
             10
         )
+        self._state_pub = self.create_publisher(
+            String,
+            f"/{namespace}/robot_state",
+            10
+        )
         self.bridge = CvBridge()
+
+    @property
+    def current_step(self) -> CurrentState:
+        return self._current_step
+
+
+    @current_step.setter
+    def current_step(self, value: CurrentState):
+        self._state_pub.publish(
+            String(data=f"Current State: {self._current_step.name}")
+        )
+        if not isinstance(value, CurrentState):
+            raise ValueError(f"Invalid State {value}")
+        self._current_step = value
+
+
 
     def _robot_status_callback(self, msg: RobotStatus):
         self.r2_status = msg
         self.get_logger().debug(f"R2 Status: {self.r2_status.state}")
 
     def _check_state(self):
+        self._state_pub.publish(
+            String(data=f"Current State: {self._current_step.name}")
+        )
         if self.current_step == CurrentState.E_STOP:
             self.order_queue.queue.clear()
             return
@@ -433,7 +457,7 @@ class FanucActions(Node):
         )
         send_goal_future.add_done_callback(self.goal_response_callback)
 
-async def cv_loop(node: FanucActions):
+async def cv_loop(node: ControlNode):
     # Just keeps the cv window responsive
     cv2.namedWindow("Image", cv2.WINDOW_NORMAL)
     cv2.namedWindow("QA Dice",cv2.WINDOW_NORMAL)
@@ -450,17 +474,22 @@ async def ros_loop(node):
         await asyncio.sleep(1e-4)
 
 def main():
-    future = asyncio.wait([ros_loop(), cv_loop()])
+    rclpy.init()
+    node = ControlNode(NAMESPACE)
+
+    future = asyncio.wait([ros_loop(node), cv_loop(node)])
     asyncio.get_event_loop().run_until_complete(future)
+    node.destroy_node()
+    rclpy.shutdown()
 
 if __name__ == '__main__':
-    rclpy.init()
-    fanuc = FanucActions(NAMESPACE)
-    fanuc.schunk_open()
-    # fanuc.home()
-    # fanuc.dice()
-    fanuc.schunk_close()
-    # fanuc.home()
-    # fanuc.new_pos()
-    fanuc.schunk_open()
-    # fanuc.home()
+    main()
+    # fanuc = ControlNode(NAMESPACE)
+    # fanuc.schunk_open()
+    # # fanuc.home()
+    # # fanuc.dice()
+    # fanuc.schunk_close()
+    # # fanuc.home()
+    # # fanuc.new_pos()
+    # fanuc.schunk_open()
+    # # fanuc.home()
