@@ -1,2 +1,4 @@
 ultralytics
 opencv-python
+pycomm3
+pymodbus
