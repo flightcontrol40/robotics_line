@@ -13,6 +13,7 @@ setup(
         ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         (os.path.join('share', package_name, 'launch'), ["launch/launch_all.py"]),
+        (os.path.join('share', package_name, 'data'), ["data/pos2.yaml"]),
 
     ],
     install_requires=['setuptools'],

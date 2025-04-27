@@ -20,23 +20,23 @@
         // "/home/nhamp/robotics_line/install/action_servers/lib/python3.10/site-packages",
         // "/home/nhamp/robotics_line/.venv/lib/python3.10/site-packages"
 
-        "/home/nhamp/robotics_line/install/sbot_interfaces/local/lib/python3.10/dist-packages",
-        "/home/nhamp/robotics_line/install/modbus_interfaces/local/lib/python3.10/dist-packages",
-        "/home/nhamp/robotics_line/install/fanuc_interfaces/local/lib/python3.10/dist-packages",
-        "/home/nhamp/robotics_line/install/robot_3_interfaces/local/lib/python3.10/dist-packages",
+        "${workspaceFolder}/install/sbot_interfaces/local/lib/python3.10/dist-packages",
+        "${workspaceFolder}/install/modbus_interfaces/local/lib/python3.10/dist-packages",
+        "${workspaceFolder}/install/fanuc_interfaces/local/lib/python3.10/dist-packages",
+        "${workspaceFolder}/install/robot_3_interfaces/local/lib/python3.10/dist-packages",
         "/opt/ros/humble/lib/python3.10/site-packages",
         "/opt/ros/humble/local/lib/python3.10/dist-packages",
-        "/home/nhamp/robotics_line/src"
-
+        "${workspaceFolder}/src"
     ],
     "python.analysis.extraPaths": [
-        "/home/nhamp/robotics_line/install/sbot_interfaces/local/lib/python3.10/dist-packages",
-        "/home/nhamp/robotics_line/install/modbus_interfaces/local/lib/python3.10/dist-packages",
-        "/home/nhamp/robotics_line/install/fanuc_interfaces/local/lib/python3.10/dist-packages",
+        "${workspaceFolder}/install/sbot_interfaces/local/lib/python3.10/dist-packages",
+        "${workspaceFolder}/install/modbus_interfaces/local/lib/python3.10/dist-packages",
+        "${workspaceFolder}/install/fanuc_interfaces/local/lib/python3.10/dist-packages",
         "/opt/ros/humble/lib/python3.10/site-packages",
         "/opt/ros/humble/local/lib/python3.10/dist-packages",
-        "/home/nhamp/robotics_line/install/robot_3_interfaces/local/lib/python3.10/dist-packages",
-        "/home/nhamp/robotics_line/src"
-
-    ]
+        "${workspaceFolder}/install/robot_3_interfaces/local/lib/python3.10/dist-packages",
+        "${workspaceFolder}/src"
+    ],
+    "python.terminal.activateEnvInCurrentTerminal": false,
+    "python.terminal.activateEnvironment": false
 }

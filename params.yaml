@@ -1,0 +1,6 @@
+/**:
+  ros__parameters:
+    # The name of the robot
+    robot_name: "beaker"
+    # The name of the robot description parameter
+    robot_ip: "172.29.208.124"

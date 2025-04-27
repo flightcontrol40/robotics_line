@@ -2,7 +2,7 @@
 # import cv2
 import numpy as np
 
-from camera_driver import mvsdk
+import camera_driver.mvsdk as mvsdk
 
 
 class CameraConnectionError(Exception):
@@ -23,6 +23,7 @@ class CheepAssChineseCamera:
 
     def __iter__(self):
         while True:
+            print("Getting frame")
             yield self.get_frame()
 
 
@@ -34,7 +35,7 @@ class CheepAssChineseCamera:
 
             nDev = len(DevList)
             if nDev < 1:
-                if attempts > 5:
+                if attempts > 100:
                     raise CameraConnectionError("No camera was found!")
                 else:
                     attempts+=1
@@ -62,7 +63,8 @@ class CheepAssChineseCamera:
 
     def release_camera(self):
         mvsdk.CameraUnInit(self.hCamera)
-        mvsdk.CameraAlignFree(self.pFrameBuffer)
+        if hasattr(self, 'pFrameBuffer'):
+            mvsdk.CameraAlignFree(self.pFrameBuffer)
         self._opened = False
 
     def get_frame(self):

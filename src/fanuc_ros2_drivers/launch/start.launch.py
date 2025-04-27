@@ -1,13 +1,13 @@
-from launch_ros.substitutions import FindPackageShare
+import sys
 
 from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import PathJoinSubstitution, TextSubstitution
-import sys
+from launch_ros.substitutions import FindPackageShare
 
-name = ''
-ip = ''
+name = 'beaker'
+ip = '172.29.208.124'
 
 # It has to be passed like this, otherwise launch gets upset
 for arg in sys.argv:
