@@ -1,38 +1,42 @@
 {
     "cSpell.words": [
         "datablock",
+        "Fanuc",
         "Modbus",
-        "Pymodbus"
+        "Pymodbus",
+        "rclpy",
+        "rwlock",
+        "schunk"
     ],
     "ros.distro": "humble",
     "python.autoComplete.extraPaths": [
-        "/home/nhamp/robotics_line/install/robotics_line/lib/python3.10/site-packages",
-        "/home/nhamp/robotics_line/install/srv_services/lib/python3.10/site-packages",
+        // "/home/nhamp/robotics_line/install/dice_qa/lib/python3.10/site-packages",
+        // "/home/nhamp/robotics_line/install/camera_driver/lib/python3.10/site-packages",
+        // "/home/nhamp/robotics_line/install/robotics_line/lib/python3.10/site-packages",
+        // "/home/nhamp/robotics_line/install/srv_services/lib/python3.10/site-packages",
+        // "/home/nhamp/robotics_line/install/msg_publishers/lib/python3.10/site-packages",
+        // "/home/nhamp/robotics_line/install/crx10_modbus/lib/python3.10/site-packages",
+        // "/home/nhamp/robotics_line/install/control_node/lib/python3.10/site-packages",
+        // "/home/nhamp/robotics_line/install/action_servers/lib/python3.10/site-packages",
+        // "/home/nhamp/robotics_line/.venv/lib/python3.10/site-packages"
+
         "/home/nhamp/robotics_line/install/sbot_interfaces/local/lib/python3.10/dist-packages",
-        "/home/nhamp/robotics_line/install/msg_publishers/lib/python3.10/site-packages",
-        "/home/nhamp/robotics_line/install/crx10_modbus/lib/python3.10/site-packages",
         "/home/nhamp/robotics_line/install/modbus_interfaces/local/lib/python3.10/dist-packages",
-        "/home/nhamp/robotics_line/install/control_node/lib/python3.10/site-packages",
-        "/home/nhamp/robotics_line/install/action_servers/lib/python3.10/site-packages",
         "/home/nhamp/robotics_line/install/fanuc_interfaces/local/lib/python3.10/dist-packages",
-        "/home/nhamp/robotics_line/install/dice_qa/lib/python3.10/site-packages",
-        "/home/nhamp/robotics_line/install/camera_driver/lib/python3.10/site-packages",
+        "/home/nhamp/robotics_line/install/robot_3_interfaces/local/lib/python3.10/dist-packages",
         "/opt/ros/humble/lib/python3.10/site-packages",
-        "/opt/ros/humble/local/lib/python3.10/dist-packages"
+        "/opt/ros/humble/local/lib/python3.10/dist-packages",
+        "/home/nhamp/robotics_line/src"
+
     ],
     "python.analysis.extraPaths": [
-        "/home/nhamp/robotics_line/install/robotics_line/lib/python3.10/site-packages",
-        "/home/nhamp/robotics_line/install/srv_services/lib/python3.10/site-packages",
         "/home/nhamp/robotics_line/install/sbot_interfaces/local/lib/python3.10/dist-packages",
-        "/home/nhamp/robotics_line/install/msg_publishers/lib/python3.10/site-packages",
-        "/home/nhamp/robotics_line/install/crx10_modbus/lib/python3.10/site-packages",
         "/home/nhamp/robotics_line/install/modbus_interfaces/local/lib/python3.10/dist-packages",
-        "/home/nhamp/robotics_line/install/control_node/lib/python3.10/site-packages",
-        "/home/nhamp/robotics_line/install/action_servers/lib/python3.10/site-packages",
         "/home/nhamp/robotics_line/install/fanuc_interfaces/local/lib/python3.10/dist-packages",
-        "/home/nhamp/robotics_line/install/dice_qa/lib/python3.10/site-packages",
-        "/home/nhamp/robotics_line/install/camera_driver/lib/python3.10/site-packages",
         "/opt/ros/humble/lib/python3.10/site-packages",
-        "/opt/ros/humble/local/lib/python3.10/dist-packages"
+        "/opt/ros/humble/local/lib/python3.10/dist-packages",
+        "/home/nhamp/robotics_line/install/robot_3_interfaces/local/lib/python3.10/dist-packages",
+        "/home/nhamp/robotics_line/src"
+
     ]
 }

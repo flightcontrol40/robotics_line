@@ -33,8 +33,8 @@ from rclpy.action.client import ActionClient
 from rclpy.node import Node
 from sensor_msgs.msg import Image
 from std_msgs.msg import Bool, String
-from ultralytics import YOLO
 
+from robot_3_interfaces.msg import RobotStatus as FanucStatus
 from sbot_interfaces.msg import RobotStatus  # noqa: F401
 
 R2_STATUS_TOPIC = "/Robot2/Status"
@@ -67,6 +67,11 @@ def get_pos_goal(name: str, joint:bool = True)-> JointPose.Goal|CartPose.Goal:
     else:
         kwargs = dict(zip(CART_NAMES,cords))
         return CartPose.Goal(**kwargs)
+
+
+class ErrorState(Enum):
+    OK = 0
+    ERROR = 1
 
 class CurrentState(Enum):
     """Robot States"""
@@ -101,25 +106,31 @@ class Order:
 class ControlNode(Node):
     def __init__(self, namespace):
         super().__init__("robot")
-        # Actions
+        # Robot Control Types
         self.cart_ac = ActionClient(self, CartPose, f'/{namespace}/cartesian_pose')
         self.convey_ac = ActionClient(self, Conveyor, f'/{namespace}/conveyor')
         self.joints_ac = ActionClient(self, JointPose, f'/{namespace}/joint_pose')
         self.schunk_ac = ActionClient(self, SchunkGripper, f'/{namespace}/schunk_gripper')
         self.speed_sc = self.create_client(SetSpeed, f'{namespace}/set_speed')
+        
+        # Robot State Vars
         self._current_step = CurrentState.WAITING_FOR_HANDOFF
-        self.order_queue: Queue[Order] = Queue()
         self.processing_command = False
         self.r2_status = RobotStatus(state=-1)
-        self.prox_readings = ProxReadings()
-        self.cv_image: cv2.typing.MatLike = BLANK_IMAGE
-        self.qa_image: cv2.typing.MatLike = BLANK_IMAGE[0:500, 0:500]
-        self.model = YOLO("/home/nathan/robotics_line/camera/model/best.pt")
-        self.acquire_lock = False
+        self.prox_readings = ProxReadings(right=0, left=0)
+        self.qa_image: cv2.typing.MatLike = BLANK_IMAGE
+
+        # Control Structures
+        self.order_queue: Queue[Order] = Queue()
         self._order_timer = self.create_timer(
             0.0001,
             callback=self._process_commands,
         )
+        self._qa_pass = 0
+        self._read_qa = False
+        self._last_img_cls = ""
+        self._qa_img = None
+        self._error_state = ErrorState.OK
         self._state_timer = self.create_timer(
             0.0001,
             callback=self._check_state,
@@ -143,33 +154,74 @@ class ControlNode(Node):
             10
         )
         self.create_subscription(
-            Image,
-            f"/{namespace}/camera/image_raw",
-            self._image_callback,
+            String,
+            f'/{self.get_parameter('robot_name').value}/qa/status',
+            self._qa_status_callback,
             10
         )
+        self.create_subscription(
+            Image,
+            f'/{self.get_parameter('robot_name').value}/qa/img',
+            self._qa_image_callback,
+            10
+        )
+
         self._state_pub = self.create_publisher(
-            String,
+            FanucStatus,
             f"/{namespace}/robot_state",
             10
         )
         self.bridge = CvBridge()
 
+
+    def _qa_status_callback(self, cls: String):
+        self._last_img_cls = cls.data
+
+    def _qa_image_callback(self, img: Image):
+        self.qa_image = self.bridge.imgmsg_to_cv2(img)
+
     @property
     def current_step(self) -> CurrentState:
         return self._current_step
 
-
     @current_step.setter
     def current_step(self, value: CurrentState):
-        self._state_pub.publish(
-            String(data=f"Current State: {self._current_step.name}")
-        )
         if not isinstance(value, CurrentState):
             raise ValueError(f"Invalid State {value}")
         self._current_step = value
+        self._publish_robot_status()
 
+        # self._state_pub.publish(
+        #     String(data=f"Current State: {self._current_step.name}")
+        # )
 
+    @property
+    def dice_qa_state(self):
+        return self._qa_pass
+
+    @dice_qa_state.setter
+    def _update_qa(self, state):
+        self._qa_pass = state
+        self._publish_robot_status()
+
+    @property
+    def error_state(self):
+        return self._error_state
+
+    @error_state.setter
+    def _update_error(self, state: ErrorState):
+        self._error_state = state
+        self._publish_robot_status()
+
+    def _publish_robot_status(self):
+        state = FanucStatus(
+            dice_qa = bool(self.dice_qa_state),
+            error_code= self.error_state.value,
+            error_status= 0 if self.error_state == ErrorState.OK else 1,
+            process_state = self.current_step.value,
+            r2_handoff = 1 if self._current_step == CurrentState.IN_HANDOFF else 0
+        )
+        self._state_pub.publish(state)
 
     def _robot_status_callback(self, msg: RobotStatus):
         self.r2_status = msg
@@ -220,36 +272,40 @@ class ControlNode(Node):
             # At this point We are gripping the dice and waiting for
             # R2 to send the signal that it has let go
             if self.r2_status != 8 and self.r2_status != 9: # 9 is error
-                # Place dice on conveyor, and run it to R4
-                self.get_logger().info("Sending dice to R4")
-                order = Order(
-                    order_type=OrderType.MOVE_JOINT,
-                    args=get_pos_goal("handoff_off")
-                )
-                self.order_queue.put(order)
-                order = Order(
-                    order_type=OrderType.MOVE_JOINT,
-                    args=get_pos_goal("AboveConv1")
-                )
-                self.order_queue.put(order)
-                order = Order(
-                    order_type=OrderType.MOVE_JOINT,
-                    args=get_pos_goal("Conv1Place")
-                )
-                self.order_queue.put(order)
-                order = Order(
-                    order_type=OrderType.GRIPPER,
-                    args=SchunkGripper.Goal(command="open")
-                )
-                self.order_queue.put(order)
-                order = Order(
-                    order_type=OrderType.MOVE_CART,
-                    args=get_pos_goal("Conv1AfterPlace", joint=False)
-                )
-                self.order_queue.put(order)
-                self.current_step = CurrentState.WAIT_FOR_CONV1
+                self.current_step = CurrentState.MOVE_TO_CONV1
                 return
         elif self.current_step == CurrentState.MOVE_TO_CONV1:
+            # Wait for moves to complete
+            if not self.order_queue.empty():
+                return
+            self.get_logger().info("Sending dice to R4")
+            order = Order(
+                order_type=OrderType.MOVE_JOINT,
+                args=get_pos_goal("handoff_off")
+            )
+            self.order_queue.put(order)
+            order = Order(
+                order_type=OrderType.MOVE_JOINT,
+                args=get_pos_goal("AboveConv1")
+            )
+            self.order_queue.put(order)
+            order = Order(
+                order_type=OrderType.MOVE_JOINT,
+                args=get_pos_goal("Conv1Place")
+            )
+            self.order_queue.put(order)
+            order = Order(
+                order_type=OrderType.GRIPPER,
+                args=SchunkGripper.Goal(command="open")
+            )
+            self.order_queue.put(order)
+            order = Order(
+                order_type=OrderType.MOVE_CART,
+                args=get_pos_goal("Conv1AfterPlace", joint=False)
+            )
+            self.order_queue.put(order)
+            self.current_step = CurrentState.SEND_TO_R4
+        elif self.current_step == CurrentState.SEND_TO_R4:
             # Wait for moves to complete
             if not self.order_queue.empty():
                 return
@@ -266,10 +322,7 @@ class ControlNode(Node):
                 args=get_pos_goal("Conv2Block")
             )
             self.order_queue.put(order)
-            self.current_step = CurrentState.SEND_TO_R4
-        elif self.current_step == CurrentState.SEND_TO_R4:
-            # We just wait here until the conveyor is done
-            # State is updated in the conveyor callback
+
             pass
         elif self.current_step == CurrentState.MOVE_TO_QA:
             if not self.order_queue.empty():
@@ -309,11 +362,15 @@ class ControlNode(Node):
         elif self.current_step == CurrentState.QA:
             # Wait for orders to complete
             if not self.order_queue.empty():
-                self.acquire_lock = False
                 return
-            # Set the acquire lock to false, and wait for a new image
-            self._qa_dice()
-            
+            # Check the image QA class
+            if self._last_img_cls == "three":
+                self._qa_pass = 1
+                self.current_step = CurrentState.QA_PASS
+            else: 
+                self._qa_pass = 0
+                self.current_step = CurrentState.QA_FAIL
+
         elif self.current_step == CurrentState.QA_PASS:
             # QA has passed, Place the dice
             self.get_logger().info("QA Pass, Moving to random place")
@@ -342,6 +399,7 @@ class ControlNode(Node):
                 args=get_pos_goal("RandomPlaceAfter_cart")
             )
         elif self.current_step == CurrentState.QA_FAIL:
+            # TODO: Add Rotate Dice Code
             # QA has failed,
             self.get_logger().info("QA Fail")
             pass
@@ -353,16 +411,6 @@ class ControlNode(Node):
             pass
         else:
             raise ValueError(f"Invalid State {self.current_step}")
-
-    def _startup(self):
-        pass
-
-    async def _image_callback(self, msg: Image):
-        # Convert the image to a cv2 image
-        self.cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
-        self.get_logger().debug(f"Got Image: {msg.header.stamp}")
-        # Set the acquire lock to indicate the image is fresh
-        self.acquire_lock = True
 
     async def conveyer_sensor_callback(self, msg: ProxReadings):
         self.prox_readings = msg
@@ -378,6 +426,7 @@ class ControlNode(Node):
                 self.order_queue.put(order)
                 self.current_step = CurrentState.WAITING_FOR_R4_CONV
 
+    # TODO: Update this to get the actual interface from r4
     async def _r4_conv_callback(self, msg: Bool):
         if msg.data:
             self.get_logger().info("R4 has sent the dice back")
@@ -395,30 +444,6 @@ class ControlNode(Node):
             raise KeyError("Invalid Order Name")
         caller: ActionClient = getattr(self, new_order.order_type.value)
         self.send_goal(caller, new_order.args)
-
-    def _qa_dice(self):
-        # Wait for all orders to complete
-        if not self.order_queue.empty():
-            return
-        # Wait for the image to be fresh
-        if not self.acquire_lock:
-            return
-        # Crop the image down
-        img = self.cv_image[0:500, 0:500]
-        results = self.model(img)
-        self.qa_image = results[0].plot()
-        # Get the results
-        names = self.model.names
-        boxes = results[0]
-        qa_class = names[int(boxes.cls[0])]
-        if qa_class == "three":
-            # QA pass
-            self.get_logger().info("QA Pass")
-            self.current_step = CurrentState.QA_PASS
-        else:
-            # QA fail
-            self.get_logger().info("QA Fail")
-            self.current_step = CurrentState.QA_FAIL
 
     def goal_response_callback(self, future):
         goal_handle = future.result()
@@ -452,17 +477,6 @@ class ControlNode(Node):
         )
         send_goal_future.add_done_callback(self.goal_response_callback)
 
-async def cv_loop(node: ControlNode):
-    # Just keeps the cv window responsive
-    cv2.namedWindow("Image", cv2.WINDOW_NORMAL)
-    cv2.namedWindow("QA Dice",cv2.WINDOW_NORMAL)
-    while True:
-        cv2.imshow("QA Dice", node.qa_image)
-        cv2.imshow("Image", node.cv_image)
-        cv2.waitKey(1)
-        await asyncio.sleep(1e-4)
-
-
 async def ros_loop(node):
     while rclpy.ok():
         rclpy.spin_once(node, timeout_sec=0)
@@ -472,7 +486,7 @@ def main():
     rclpy.init()
     node = ControlNode(NAMESPACE)
 
-    future = asyncio.wait([ros_loop(node), cv_loop(node)])
+    future = asyncio.wait([ros_loop(node)])
     asyncio.get_event_loop().run_until_complete(future)
     node.destroy_node()
     rclpy.shutdown()

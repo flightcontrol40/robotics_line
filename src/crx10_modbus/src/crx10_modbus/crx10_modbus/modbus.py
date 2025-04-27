@@ -2,6 +2,7 @@
 import asyncio  # noqa: F401
 import logging
 
+from fanuc_interfaces.msg import ProxReadings
 from pymodbus.client import ModbusBaseClient
 from pymodbus.datastore import (
     ModbusServerContext,
@@ -11,6 +12,8 @@ from pymodbus.datastore.store import ModbusSparseDataBlock
 from pymodbus.device import ModbusDeviceIdentification
 from pymodbus.logging import Log
 from pymodbus.server import ModbusTcpServer
+
+from robot_3_interfaces.msg import RobotStatus
 
 from .async_reader_writer import ThreadSafeDataBlock
 
@@ -60,7 +63,6 @@ class PosData(metaclass=AutoProp):
         ['x','y','z','w','p','r','t1','t2','t3']
     )
 
-
 # X Position                  33001    2    R    FLOAT32    mm    X position
 # Y Position                  33003    2    R    FLOAT32    mm    Y position
 # Z Position                  33005    2    R    FLOAT32    mm    Z position
@@ -76,30 +78,26 @@ class CRX10InputRegisters(ThreadSafeDataBlock):
         block = ModbusSparseDataBlock(values=values, mutable=True)
         super().__init__(block=block)
 
-
 # Turn 1                      13001    1    R    BIT    bool    Turn 1 
 # Turn 2                      13002    1    R    BIT    bool    Turn 2 
 # Turn 3                      13003    1    R    BIT    bool    Turn 3 
-# Gripper State               13004    1    R    BIT    bool    1 Close, 0 Open 
-# Error Status                13005    1    R    BIT    bool    1 Error, 0 Ok 
-# Die Detected For QA         13006    1    R    BIT    bool    1 Die Detected, 0 Not Detected 
-# Die QA Pass Fail            13007    1    R    BIT    bool    1 R BIT bool 1 QA Pass, 0 QA Fail
-# QA Replacement              13008    1    R    BIT    bool    1 Getting Dice Replacement, 0 No QA Action 
-# Handoff                     13009    1    R    BIT    bool    1 Ready to Handoff, 0 Not Ready 
-# Conveyor Status             13010    1    R    Bit    Bool    1 On, 0 Off 
-# Conveyor Right Detection    13011    1    R    Bit    Bool    1 Detected, 0 Not Detected 
-# Conveyor Left Detection     13012    1    R    Bit    Bool    1 Detected, 0 Not Detected 
+# Gripper State               13004    1    R    BIT    bool    1 Close, 0 Open
+# Error Status                13005    1    R    BIT    bool    1 Error, 0 Ok
+# Die QA Pass Fail            13006    1    R    BIT    bool    1 R BIT bool 1 QA Pass, 0 QA Fail
+# Handoff                     13007    1    R    BIT    bool    1 Ready to Handoff, 0 Not Ready
+# Conveyor Right Detection    13008    1    R    Bit    Bool    1 Detected, 0 Not Detected
+# Conveyor Left Detection     13009    1    R    Bit    Bool    1 Detected, 0 Not Detected
+
 class CRX10DiscreteInputs(ThreadSafeDataBlock):
     def __init__(self, values= {}):
         block = ModbusSparseDataBlock(values=values, mutable=True)
         super().__init__(block=block)
 
-
 class CRX10Mapper:
 
     def __init__(self):
         self.ir: CRX10InputRegisters = CRX10InputRegisters(values= {k:0 for k in range(3001, 3014)})
-        self.di: CRX10DiscreteInputs = CRX10DiscreteInputs(values={k:0 for k in range(3001, 3012)})
+        self.di: CRX10DiscreteInputs = CRX10DiscreteInputs(values={k:0 for k in range(3001, 3009)})
         self.server_context = self._build_context()
 
     def _build_context(self):
@@ -130,31 +128,80 @@ class CRX10Mapper:
         encode_pos = convert_to_registers(data,data_type=DATATYPE.BITS)
         self.di.setValues(3001,encode_pos)
 
-# test_address = [
-#     PosData(
-#         x=200.38920,
-#         y=150.2348,
-#         z=378.0932,
-#         p=180.09128,
-#         r=-0.44325,
-#         w=35.483204,
-#         t1=False,
-#         t2=False,
-#         t3=False,
-#     ),
-#     PosData(
-#         x=0.38920,
-#         y=246.2348,
-#         z=122.0932,
-#         p=-75.09128,
-#         r=-14.44325,
-#         w=64.483204,
-#         t1=False,
-#         t2=False,
-#         t3=False,
-#     ),
-# ]
+    @property
+    def gripper(self) -> str:
+        raw = convert_from_registers(self.di.getValues(3004, 1), data_type=DATATYPE.BITS)
+        if raw:
+            return "close"
+        else:
+            return "open"
 
+    @gripper.setter
+    def _set_gripper(self, _state):
+        if _state == "open":
+            g_state = convert_to_registers(0, data_type= DATATYPE.FLOAT32)
+            pass
+        elif _state == "close":
+            g_state = convert_to_registers(1, data_type= DATATYPE.FLOAT32)
+            pass
+        else:
+            raise ValueError("Gripper state must be one of 'open' or 'close'")
+
+        self.di.setValues(3004, g_state)
+
+    @property
+    def error_status(self) -> str:
+        raw = convert_from_registers(self.di.getValues(3005, 1),data_type=DATATYPE.BITS)
+        if raw:
+            return "error"
+        else:
+            return "ok"
+
+    @error_status.setter
+    def _set_error_status(self, _state):
+        if _state == "error":
+            g_state = convert_to_registers(0,data_type= DATATYPE.FLOAT32)
+            pass
+        elif _state == "ok":
+            g_state = convert_to_registers(1,data_type= DATATYPE.FLOAT32)
+            pass
+        else:
+            raise ValueError("Error state must be one of 'error' or 'ok'")
+        
+        self.di.setValues(3004, g_state)
+
+    @property
+    def robot_status(self) -> RobotStatus:
+        status = {}
+        raw = self.ir.getValues(3013,2)
+        status_ir = convert_from_registers(raw, data_type=DATATYPE.UINT16)
+        status["process_state"] = status_ir[0]
+        status["error_code"] = status_ir[1]
+        raw = self.di.getValues(3005,3)
+        status_di = convert_from_registers(raw,data_type=DATATYPE.BITS)
+        status["error_status"] = status_di[0]
+        status["die_qa"] = status_di[1]
+        status["r2_handoff"] = status_di[2]
+        return RobotStatus(**status)
+
+    @robot_status.setter
+    def _set_robot_status(self, _status: RobotStatus):
+        data = [_status.process_state, _status.error_code]
+        encode_status = convert_to_registers(data,data_type=DATATYPE.UINT16)
+        self.ir.setValues(3013, encode_status)
+        data = [_status.error_status, _status.die_qa, _status.r2_handoff]
+        encode_status = convert_to_registers(data,data_type=DATATYPE.BITS)
+        self.di.setValues(3005,encode_status)
+
+    @property
+    def prox_status(self) -> ProxReadings:
+        right_status, left_status = convert_from_registers(self.di.getValues(3008, 2),data_type=DATATYPE.BITS)
+        return ProxReadings(left=left_status, right=right_status)
+
+    @prox_status.setter
+    def _set__prox_status(self, _state: ProxReadings):
+        encode_status = convert_to_registers([_state.right, _state.left],data_type=DATATYPE.BITS)
+        self.di.setValues(3008, encode_status)
 
 class CRX10ModbusServer():
 
@@ -179,7 +226,5 @@ class CRX10ModbusServer():
             address=(self.host, self.port),  # listen address
             framer="socket",  # The framer strategy to use
         )
-
-
 
 

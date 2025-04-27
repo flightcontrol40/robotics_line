@@ -1,3 +1,6 @@
+import os
+from glob import glob
+
 from setuptools import find_packages, setup
 
 package_name = 'dice_qa'
@@ -10,8 +13,14 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        ('share/' + package_name + '/model', glob('model/*.pt')),
+        (os.path.join('share', package_name, 'launch'), glob(os.path.join('launch', '*.py')))
     ],
     install_requires=['setuptools'],
+    package_dir={
+        "dice_qa": "dice_qa"
+    },
+
     zip_safe=True,
     maintainer='nathan',
     maintainer_email='nathanhampton40000@gmail.com',
@@ -20,6 +29,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'dice_qa = dice_qa.qa:main' 
         ],
     },
 )

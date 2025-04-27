@@ -11,20 +11,19 @@
 # Requires Ethernet/IP FANUC driver and 30 Series Controller
 # 
 
-DEBUG = False
+DEBUG = True
 
 #import sys
 #sys.path.append('./pycomm3/pycomm3')
-from enum import Enum
-from pycomm3 import CIPDriver
-from pycomm3 import Services
-from pycomm3 import DataTypes, DataType
-from pycomm3.logger import configure_default_logger, LOG_VERBOSE
-import pycomm3
-import struct
-import random
-import time
 import math
+import random
+import struct
+import time
+from enum import Enum
+
+import pycomm3
+from pycomm3 import CIPDriver, DataType, DataTypes, Services
+from pycomm3.logger import LOG_VERBOSE, configure_default_logger
 
 # Helper functions
 

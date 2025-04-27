@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 import sys
-import os
-import rclpy
 
 import dependencies.FANUCethernetipDriver as FANUCethernetipDriver
-
+import rclpy
 from dependencies.robot_controller import robot
 from fanuc_interfaces.action import Conveyor
+from rclpy.action import ActionServer, CancelResponse, GoalResponse
 from rclpy.node import Node
-from rclpy.action import ActionServer, GoalResponse, CancelResponse
 
 FANUCethernetipDriver.DEBUG = False
 
@@ -37,7 +35,7 @@ class convey_server(Node):
         """ Accepts or Rejects client request to begin Action """
         self.goal = goal_request 
         
-        # Check that it recieved a valid goal
+        # Check that it received a valid goal
         if (self.goal.command == 'forward' or
             self.goal.command == 'reverse' or 
             self.goal.command == 'stop'):

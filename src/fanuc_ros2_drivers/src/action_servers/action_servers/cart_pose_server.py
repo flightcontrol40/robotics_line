@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 import sys
-import os
-import rclpy
 
 import dependencies.FANUCethernetipDriver as FANUCethernetipDriver
-
+import rclpy
 from dependencies.robot_controller import robot
 from fanuc_interfaces.action import CartPose
+from rclpy.action import ActionServer, CancelResponse, GoalResponse
 from rclpy.node import Node
-from rclpy.action import ActionServer, GoalResponse, CancelResponse
 
 FANUCethernetipDriver.DEBUG = False
 
@@ -84,7 +82,11 @@ class cart_pose_server(Node):
                                             self.goal.z,
                                             self.goal.w, 
                                             self.goal.p,
-                                            self.goal.r],
+                                            self.goal.r,
+                                            self.goal.t1,
+                                            self.goal.t2,
+                                            self.goal.t3
+                                            ],
                                             blocking=False)
 
             while self.bot.is_moving():

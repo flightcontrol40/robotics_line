@@ -10,6 +10,12 @@ float32 z
 float32 w 200.0
 float32 p 200.0
 float32 r 200.0
+
+
+bool t1 0
+bool t2 0
+bool t3 0
+
 ---
 #Result
 bool success

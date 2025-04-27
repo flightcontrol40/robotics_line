@@ -20,7 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-                'modbus = crx10_modbus.subscriber_member_function:main'
+                'modbus = crx10_modbus.modbus_node:main'
         ],
     },
 )
