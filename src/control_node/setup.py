@@ -1,5 +1,4 @@
 import os
-from glob import glob
 
 from setuptools import find_packages, setup
 
@@ -13,7 +12,7 @@ setup(
         ('share/ament_index/resource_index/packages',
         ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
-        (os.path.join('share', package_name, 'launch'), ["launch/runner.py"]),
+        (os.path.join('share', package_name, 'launch'), ["launch/launch_all.py"]),
 
     ],
     install_requires=['setuptools'],
@@ -25,7 +24,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'runner = control_node.ros_2_demo:main'
+            'main = control_node.ros_2_demo:main'
         ],
     },
 )

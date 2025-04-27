@@ -493,12 +493,6 @@ def main():
 
 if __name__ == '__main__':
     main()
-    # fanuc = ControlNode(NAMESPACE)
-    # fanuc.schunk_open()
-    # # fanuc.home()
-    # # fanuc.dice()
-    # fanuc.schunk_close()
-    # # fanuc.home()
-    # # fanuc.new_pos()
-    # fanuc.schunk_open()
-    # # fanuc.home()
+
+
+#END

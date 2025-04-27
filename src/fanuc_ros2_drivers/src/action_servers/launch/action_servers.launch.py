@@ -1,7 +1,19 @@
+import sys
+
 import launch
-from launch_ros.actions import Node, PushRosNamespace
 from launch.actions import DeclareLaunchArgument, LogInfo
 from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import Node
+
+name = ''
+ip = ''
+
+# It has to be passed like this, otherwise launch gets upset
+for arg in sys.argv:
+    if arg.startswith("robot_name:="):
+        name = arg.split(":=")[1]
+    elif arg.startswith("robot_ip:="):
+    	ip = arg.split(":=")[1]
 
 
 def generate_launch_description():
