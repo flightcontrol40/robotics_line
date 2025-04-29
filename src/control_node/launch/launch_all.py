@@ -22,18 +22,6 @@ for arg in sys.argv:
 
 def generate_launch_description():
 
-    robot_name_launch_arg = DeclareLaunchArgument(
-        'robot_name',
-        default_value='beaker',
-        description="Name of the robot these nodes will be attached to"
-    )
-    robot_ip_launch_arg = DeclareLaunchArgument(
-        'robot_ip',
-        default_value = '172.29.208.124',
-        description="IP address of the robot these nodes will be attached to"
-    )
-    robot_name = LaunchConfiguration('robot_name')
-
     # Fanuc Drivers code
     fanuc_drivers = [
         IncludeLaunchDescription(
@@ -44,10 +32,6 @@ def generate_launch_description():
                     'action_servers.launch.py'
                 ])
             ]),
-            launch_arguments={
-                'robot_name': name,
-                'robot_ip': ip,
-            }.items()
         ),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource([
@@ -57,10 +41,6 @@ def generate_launch_description():
                     'message_publishers.launch.py'
                 ])
             ]),
-            launch_arguments={
-                'robot_name': name,
-                'robot_ip': ip,
-            }.items()
         ),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource([
@@ -70,10 +50,6 @@ def generate_launch_description():
                     'srv_services.launch.py'
                 ])
             ]),
-            launch_arguments={
-                'robot_name': name,
-                'robot_ip': ip,
-            }.items()
         ),
     ]
 
@@ -97,10 +73,6 @@ def generate_launch_description():
                 'modbus_server.py'
             ])
         ]),
-        launch_arguments={
-                'robot_name': name,
-                'robot_ip': ip,
-            }.items()
     ),
 
     package_name = 'control_node'
@@ -110,12 +82,9 @@ def generate_launch_description():
         executable='main',
         respawn=True,
         respawn_delay=4,
-        parameters=[{"robot_name": robot_name}]
     )
 
     return launch.LaunchDescription([
-        robot_name_launch_arg,
-        robot_ip_launch_arg,
         camera_driver,
         modbus_server,
         control_node,

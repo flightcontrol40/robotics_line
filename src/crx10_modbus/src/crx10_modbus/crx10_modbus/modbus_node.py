@@ -7,17 +7,15 @@ from rclpy.node import Node
 from crx10_modbus.modbus import CRX10ModbusServer, PosData
 from robot_3_interfaces.msg import RobotStatus
 
+name = 'beaker'
+ip = '172.29.208.124'
 
 class ModbusServer(Node):
 
     def __init__(self):
         super().__init__('ModbusServer')
-        self.declare_parameters(
-            namespace='',
-            parameters=[('robot_name','noNAME')] # custom, default
-        )
         self.server = CRX10ModbusServer()
-        robot_name = self.get_parameter('robot_name').value
+        robot_name = name
         self._pos_sub = self.create_subscription(
             CurCartesian,
             f'/{robot_name}/cur_cartesian',

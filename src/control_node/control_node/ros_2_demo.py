@@ -41,12 +41,13 @@ from sbot_interfaces.msg import RobotStatus  # noqa: F401
 
 share_dir = get_package_share_directory("control_node")
 
-R2_STATUS_TOPIC = "/Robot2/Status"
+
+ROBOT_NAME = 'beaker'
+ROBOT_IP = '172.29.208.124'
+R2_STATUS_TOPIC = f"/{ROBOT_NAME}/Status"
 POSITIONS_FILE = share_dir +"/data/pos2.yaml"
-NAMESPACE = 'beaker'
-CONV1_TOPIC = f"/{NAMESPACE}/prox_readings"
+CONV1_TOPIC = f"/{ROBOT_NAME}/prox_readings"
 R4_CONV_TOPIC = "/bunsen/dice_sent"
-CAMERA_IMAGE_TOPIC = "/camera_driver/vis/image_raw"
 POSITIONS = {}
 
 with open(POSITIONS_FILE, "r") as fd:
@@ -110,12 +111,7 @@ class Order:
 class ControlNode(Node):
     def __init__(self):
         super().__init__("robot")
-        self.declare_parameters(
-            namespace='',
-            parameters=[('robot_ip','172.29.208.0'),
-                        ('robot_name','beaker')]
-        )
-        self.robot_name = self.get_parameter('robot_name').value
+        self.robot_name = ROBOT_NAME
         # Robot Control Types
         self.cart_ac = ActionClient(self, CartPose, f'/{self.robot_name}/cartesian_pose')
         self.convey_ac = ActionClient(self, Conveyor, f'/{self.robot_name}/conveyor')
