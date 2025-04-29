@@ -41,7 +41,6 @@ from sbot_interfaces.msg import RobotStatus  # noqa: F401
 
 share_dir = get_package_share_directory("control_node")
 
-
 ROBOT_NAME = 'beaker'
 ROBOT_IP = '172.29.208.124'
 R2_STATUS_TOPIC = f"/{ROBOT_NAME}/Status"
@@ -555,7 +554,6 @@ class ControlNode(Node):
             feedback_callback=self.feedback_callback
         )
         send_goal_future.add_done_callback(self.goal_response_callback)
-
 
 def main():
     rclpy.init()
