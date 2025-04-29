@@ -16,6 +16,7 @@ find_package(sensor_msgs REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/RobotStatus.msg"
   "srv/QaDice.srv"
+  "srv/GetFrame.srv"
   DEPENDENCIES sensor_msgs
 )
 

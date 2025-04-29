@@ -7,6 +7,7 @@ from cv_bridge import CvBridge
 from rclpy.node import Node
 from sensor_msgs.msg import Image
 from ultralytics import YOLO
+from ultralytics.engine.results import Results
 from robot_3_interfaces.srv import QaDice
 import numpy as np
 
@@ -53,7 +54,7 @@ class DiceQA(Node):
             10
         )
         self.srv = self.create_service(
-            QaDice, 
+            QaDice,
             f"{self.robot_name}/qa_dice",
             self._qa_image
         )
@@ -61,23 +62,31 @@ class DiceQA(Node):
     def _img_sub(self, image: Image):
         self.latest_img = self.bridge.imgmsg_to_cv2(image)
 
-    def _qa_image(self, _:QaDice.Request, response:QaDice.Response):
-        # Crop the image down
+    def _preform_qa(self):
         img = self.latest_img[500:-1, 100:700]
-        results = self.model(img)
-        if not len(results):
-            response.qa_image = self.bridge.cv2_to_imgmsg(BLANK_IMAGE)
-            response.obj_cls = "None"
-            return response
-
+        results: list[Results] = self.model(img)
+        assert isinstance(results, list)
+        logger = self.get_logger()
+        logger.debug(f"len(results): {len(results):}")
         # Get the results
         result = results[0]
+
         self.qa_image = result.plot()
         names = self.model.names
-        boxes = results[0].boxes
+        boxes = result.boxes
+        logger.debug(f"Boxes: {boxes}")
+        logger.debug(f"Boxes.cls: {boxes.cls}")
+        if not len(boxes):
+            return (self.bridge.cv2_to_imgmsg(self.qa_image), "None")
+
         qa_class = names[int(boxes.cls[0])]
+        return (self.bridge.cv2_to_imgmsg(self.qa_image), qa_class)
+
+    def _qa_image(self, _:QaDice.Request, response:QaDice.Response):
+        # Crop the image down
+        qa_img, qa_class = self._preform_qa()
         response.obj_cls = qa_class
-        response.qa_image = self.bridge.cv2_to_imgmsg(self.qa_image)
+        response.qa_image = qa_img
         return response
 
 def main():
@@ -86,9 +95,6 @@ def main():
     node = DiceQA()
     while rclpy.ok():
         rclpy.spin_once(node)
-        if node.qa_image is not None:
-            cv2.imshow("QA Image", node.qa_image)
-            cv2.waitKey(1)
     node.destroy_node()
     rclpy.shutdown()
 

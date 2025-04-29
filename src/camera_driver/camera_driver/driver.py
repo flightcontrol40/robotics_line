@@ -5,6 +5,7 @@ import numpy as np
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image
+from robot_3_interfaces.srv import GetFrame
 
 from camera_driver.camera import CheepAssChineseCamera
 
@@ -38,15 +39,26 @@ class CameraDriver(Node):
     def __init__(self):
         super().__init__('camera_driver')
         # QoS history depth of 10
+        self.cam = CheepAssChineseCamera()
+        self.cam.start_camera()
         self.publisher_ = self.create_publisher(
             Image,
             'camera/image_raw',
             10
         )
+        self._img_timer = self.create_timer(
+            0.03,
+            callback=self.capture_image
+        )
+
+    def capture_image(self):
+        frame = self.cam.get_frame()
+        self.publish_image(frame)
 
     def publish_image(self, frame: np.ndarray):
+        self.get_logger().info("Publishing Image")
         # Convert OpenCV image (BGR8) to ROS2 Image
-        img_msg = cv2_to_image(frame,)
+        img_msg = cv2_to_image(frame)
         # Stamp with acquisition time
         img_msg.header.stamp = self.get_clock().now().to_msg()
         # Optical frame of your camera
@@ -59,25 +71,17 @@ def main():
     rclpy.init()
 
     node = CameraDriver()
-    cam = CheepAssChineseCamera()
     node.get_logger().info("Starting camera")
     try:
-
-        while True:
-            cam.start_camera()
-            node.get_logger().info("camera started")
-            i = 0
-            while i < 1000:
-                frame = cam.get_frame()
-                node.get_logger().debug('Publishing image')
-                node.publish_image(frame)
-                rclpy.spin_once(node, timeout_sec=-1)
-                i+= 1
-            cam.release_camera()
+        rclpy.spin(node)
+        # while True:
+        #     node.cam.start_camera()
+        #     node.get_logger().info("camera started")
+        #     node.cam.release_camera()
     except Exception as e:
         node.get_logger().error(f"Error: {e}")
     finally:
-        cam.release_camera()
+        node.cam.release_camera()
 
     node.destroy_node()
     rclpy.shutdown()

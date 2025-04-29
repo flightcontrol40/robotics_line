@@ -43,7 +43,7 @@ share_dir = get_package_share_directory("control_node")
 
 ROBOT_NAME = 'beaker'
 ROBOT_IP = '172.29.208.124'
-R2_STATUS_TOPIC = f"/{ROBOT_NAME}/Status"
+R2_STATUS_TOPIC = "/dave/Status"
 POSITIONS_FILE = share_dir +"/data/pos2.yaml"
 CONV1_TOPIC = f"/{ROBOT_NAME}/prox_readings"
 R4_CONV_TOPIC = "/bunsen/dice_sent"
@@ -140,6 +140,10 @@ class ControlNode(Node):
             0.5,
             callback=self._check_state,
         )
+        self._img_timer = self.create_timer(
+            0.5,
+            callback=self._show_img,
+        )
         self.create_subscription(
             RobotStatus,
             R2_STATUS_TOPIC,
@@ -175,11 +179,28 @@ class ControlNode(Node):
             args=Conveyor.Goal(command="stop")
         )
         self.order_queue.put(order)
+        cv2.namedWindow("QA Result", cv2.WINDOW_NORMAL)
+        self.dice_qa_state = False
+        self._doing_qa = False
 
-    def _qa_callback(self, resp: QaDice.Response):
+    def _show_img(self):
+        if not self._doing_qa:
+            self._doing_qa = True
+            self.get_logger().info("QA Request")
+            self._dice_client.wait_for_service()
+            future = self._dice_client.call_async(QaDice.Request())
+            future.add_done_callback(self._qa_callback)
+        cv2.imshow("QA Result", self.qa_image)
+        cv2.waitKey(1)
+
+    def _qa_callback(self, future: rclpy.task.Future):
+        self.get_logger().info("QA Resp")
+        resp: QaDice.Response = future.result()
         self._qa_class = resp.obj_cls
         self.qa_image = self.bridge.imgmsg_to_cv2(resp.qa_image)
+        self.get_logger().info(f"QA Class: {self._qa_class}")
         self.qa_complete = True
+        self._doing_qa = False
         if self.current_step == CurrentState.QA:
             if self._qa_class == "three":
                 self.dice_qa_state = True
@@ -187,6 +208,7 @@ class ControlNode(Node):
             else:
                 self.dice_qa_state = False
                 self.current_step = CurrentState.QA_FAIL
+
 
     @property
     def current_step(self) -> CurrentState:
@@ -204,7 +226,7 @@ class ControlNode(Node):
         return self._qa_pass
 
     @dice_qa_state.setter
-    def _update_qa(self, state:bool):
+    def dice_qa_state(self, state:bool):
         self._qa_pass = state
         self._publish_robot_status()
 
@@ -213,7 +235,7 @@ class ControlNode(Node):
         return self._error_state
 
     @error_state.setter
-    def _update_error(self, state: ErrorState):
+    def error_state(self, state: ErrorState):
         self._error_state = state
         self._publish_robot_status()
 
@@ -250,7 +272,6 @@ class ControlNode(Node):
 
         elif self.current_step == CurrentState.WAITING_FOR_HANDOFF:
             if self.processing_command:
-                self.get_logger().info("Early Return Handoff")
                 return
             # Read r2 status
             if self.r2_status.state == 8:
@@ -484,7 +505,6 @@ class ControlNode(Node):
         if self.order_queue.empty():
             return
         if self._processing_command:
-            self.get_logger().info("Early Return processing command")
             return
         try:
             self._processing_command = True

@@ -1,0 +1,4 @@
+# A service for getting a camera frame
+bool as_str true
+---
+sensor_msgs/Image frame

@@ -14,21 +14,18 @@ FANUCethernetipDriver.DEBUG = False
 
 sys.path.append('./pycomm3/pycomm3')
 
+ROBOT_NAME = 'beaker'
+ROBOT_IP = '172.29.208.124'
+
 
 class onrobot_gripper_server(Node):
     def __init__(self):
         super().__init__('onrobot_gripper_server')
 
-        self.declare_parameters(
-            namespace='',
-            parameters=[('robot_ip','172.29.208.0'),
-                        ('robot_name','noNAME')] # custom, default
-        )
-
         self.goal = OnRobotGripper.Goal()
-        self.bot = robot(self.get_parameter('robot_ip').value)
+        self.bot = robot(ROBOT_IP)
 
-        self._action_server = ActionServer(self, OnRobotGripper, f"{self.get_parameter('robot_name').value}/onrobot_gripper", 
+        self._action_server = ActionServer(self, OnRobotGripper, f"{ROBOT_NAME}/onrobot_gripper", 
                                         execute_callback = self.execute_callback, 
                                         goal_callback = self.goal_callback,
                                         cancel_callback = self.cancel_callback)
