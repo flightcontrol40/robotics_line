@@ -14,7 +14,6 @@ setup(
         ('share/' + package_name, ['package.xml']),
         (os.path.join('share', package_name, 'launch'), ["launch/launch_all.py"]),
         (os.path.join('share', package_name, 'data'), ["data/pos2.yaml"]),
-
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -22,10 +21,9 @@ setup(
     maintainer_email='nathanhampton40000@gmail.com',
     description='TODO: Package description',
     license='Apache-2.0',
-    tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'main = control_node.ros_2_demo:main'
+            'main = control_node.control:main'
         ],
     },
 )

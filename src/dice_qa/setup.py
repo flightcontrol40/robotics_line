@@ -26,7 +26,7 @@ setup(
     maintainer_email='nathanhampton40000@gmail.com',
     description='TODO: Package description',
     license='Apache-2.0',
-    tests_require=['pytest'],
+
     entry_points={
         'console_scripts': [
             'qa_node = dice_qa.qa:main' 
