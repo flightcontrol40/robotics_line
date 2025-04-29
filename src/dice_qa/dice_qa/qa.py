@@ -11,6 +11,8 @@ from robot_3_interfaces.srv import QaDice
 import numpy as np
 
 BLANK_IMAGE = np.zeros((1024,1000,3), np.uint8)
+ROBOT_NAME = 'beaker'
+
 
 def find_package_share_directory(package_name, join_dirs: list[str] = None):
     """Find the package directory during tests."""
@@ -38,12 +40,8 @@ class DiceQA(Node):
 
     def __init__(self):
         super().__init__('DiceQA')
-        self.declare_parameters(
-            namespace='',
-            parameters=[('robot_name','noNAME')] # custom, default
-        )
 
-        self.robot_name = self.get_parameter('robot_name').value
+        self.robot_name = ROBOT_NAME
         self.bridge = CvBridge()
         self.model = YOLO(MODEL_FILE)
         self.latest_img = BLANK_IMAGE

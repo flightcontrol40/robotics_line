@@ -12,19 +12,16 @@ FANUCethernetipDriver.DEBUG = False
 
 sys.path.append('./pycomm3/pycomm3')
 
+ROBOT_NAME = 'beaker'
+ROBOT_IP = '172.29.208.124'
 
 class current_cartesian(Node):
     def __init__(self):
         super().__init__('cur_cart')
 
-        self.declare_parameters(
-            namespace='',
-            parameters=[('robot_ip','172.29.208.0'),
-                        ('robot_name','noNAME')] # custom, default
-        )
 
-        self.bot = robot(self.get_parameter('robot_ip').value)
-        self.publisher_ = self.create_publisher(CurCartesian, f"{self.get_parameter('robot_name').value}/cur_cartesian", 10)
+        self.bot = robot(ROBOT_IP)
+        self.publisher_ = self.create_publisher(CurCartesian, f"{ROBOT_NAME}/cur_cartesian", 10)
         timer_period = 0.5
         self.timer = self.create_timer(timer_period, self.timer_callback)
 

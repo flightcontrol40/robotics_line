@@ -13,19 +13,15 @@ FANUCethernetipDriver.DEBUG = False
 
 sys.path.append('./pycomm3/pycomm3')
 
+ROBOT_NAME = 'beaker'
+ROBOT_IP = '172.29.208.124'
 
 class check_grip(Node):
     def __init__(self):
         super().__init__('grip_pub')
 
-        self.declare_parameters(
-            namespace='',
-            parameters=[('robot_ip','172.29.208.0'),
-                        ('robot_name','noNAME')] # custom, default
-        )
-
-        self.bot = robot(self.get_parameter('robot_ip').value)
-        self.publisher_ = self.create_publisher(CurGripper, f"{self.get_parameter('robot_name').value}/grip_status", 10)
+        self.bot = robot(ROBOT_IP)
+        self.publisher_ = self.create_publisher(CurGripper, f"{ROBOT_NAME}/grip_status", 10)
         timer_period = 0.5
         self.timer = self.create_timer(timer_period, self.timer_callback)
 
