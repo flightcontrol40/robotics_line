@@ -1,8 +1,12 @@
 # Camera
 ros2 launch camera_driver launch.py -d
 
+# QA Node
+ros2 launch dice_qa qa.launch.py
+
 # Robot Drivers
 ros2 launch ./src/fanuc_ros2_drivers/launch/start.launch.py
+
 
 # Control Node
 ros2 run control_node main 

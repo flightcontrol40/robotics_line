@@ -58,9 +58,9 @@ class joint_pose_server(Node):
             self.get_logger().info('Invalid request')
             return GoalResponse.REJECT
         
-        elif self.goal.joint6 > 179.9 or self.goal.joint6 < -179.9:
-            self.get_logger().info('Invalid request')
-            return GoalResponse.REJECT
+        # elif self.goal.joint6 > 179.9 or self.goal.joint6 < -179.9:
+            # self.get_logger().info('Invalid request')
+            # return GoalResponse.REJECT
         else:
             self.get_logger().info('Joint goal recieved: '+ str(self.goal))
             return GoalResponse.ACCEPT

@@ -8,7 +8,7 @@ def generate_launch_description():
 
     robot_name_launch_arg = DeclareLaunchArgument(
         'robot_name',
-        default_value='noName',
+        default_value='beaker',
         description="Name of the robot these nodes will be attached to"
     )
     robot_name = LaunchConfiguration('robot_name')

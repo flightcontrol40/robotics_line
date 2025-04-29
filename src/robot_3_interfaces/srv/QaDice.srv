@@ -1,0 +1,6 @@
+# A service for doing a QA on the dice_sent
+bool as_str true
+---
+
+string obj_cls
+sensor_msgs/Image qa_image

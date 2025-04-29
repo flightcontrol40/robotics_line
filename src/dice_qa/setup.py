@@ -29,7 +29,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'dice_qa = dice_qa.qa:main' 
+            'qa_node = dice_qa.qa:main' 
         ],
     },
 )

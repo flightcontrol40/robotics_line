@@ -6,9 +6,11 @@ import rclpy
 from cv_bridge import CvBridge
 from rclpy.node import Node
 from sensor_msgs.msg import Image
-from std_msgs.msg import String
 from ultralytics import YOLO
+from robot_3_interfaces.srv import QaDice
+import numpy as np
 
+BLANK_IMAGE = np.zeros((1024,1000,3), np.uint8)
 
 def find_package_share_directory(package_name, join_dirs: list[str] = None):
     """Find the package directory during tests."""
@@ -40,40 +42,45 @@ class DiceQA(Node):
             namespace='',
             parameters=[('robot_name','noNAME')] # custom, default
         )
+
+        self.robot_name = self.get_parameter('robot_name').value
         self.bridge = CvBridge()
         self.model = YOLO(MODEL_FILE)
+        self.latest_img = BLANK_IMAGE
+        self.qa_image = BLANK_IMAGE
         self._image_sub = self.create_subscription(
             Image,
             '/camera/image_raw',
-            callback=self._qa_image,
-        )
-        self.qa_publisher = self.create_publisher(
-            String,
-            f'/{self.get_parameter('robot_name').value}/qa/status',
+            self._img_sub,
             10
         )
-        self.qa_image_pub = self.create_publisher(
-            Image,
-            f'/{self.get_parameter('robot_name').value}/qa/img',
-            10
+        self.srv = self.create_service(
+            QaDice, 
+            f"{self.robot_name}/qa_dice",
+            self._qa_image
         )
 
-    def _qa_image(self, image):
-        img = self.bridge.imgmsg_to_cv2(image, encoding="bgr8")
+    def _img_sub(self, image: Image):
+        self.latest_img = self.bridge.imgmsg_to_cv2(image)
+
+    def _qa_image(self, _:QaDice.Request, response:QaDice.Response):
         # Crop the image down
-        img = img[500:-1, 100:700]
+        img = self.latest_img[500:-1, 100:700]
         results = self.model(img)
         if not len(results):
-            return
+            response.qa_image = self.bridge.cv2_to_imgmsg(BLANK_IMAGE)
+            response.obj_cls = "None"
+            return response
+
         # Get the results
         result = results[0]
         self.qa_image = result.plot()
         names = self.model.names
         boxes = results[0].boxes
         qa_class = names[int(boxes.cls[0])]
-        self.qa_publisher.publish(String(data=qa_class))
-        self.qa_image_pub.publish(self.bridge.cv2_to_imgmsg(self.qa_image))
-
+        response.obj_cls = qa_class
+        response.qa_image = self.bridge.cv2_to_imgmsg(self.qa_image)
+        return response
 
 def main():
     rclpy.init()

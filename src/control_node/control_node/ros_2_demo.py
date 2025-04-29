@@ -5,7 +5,6 @@
 # ROS packages
 import asyncio
 import random
-import time
 from copy import copy
 from dataclasses import dataclass
 from enum import Enum
@@ -13,14 +12,15 @@ from queue import Queue
 from typing import Any
 
 import cv2
-import fanuc_interfaces  # noqa: F401
 import numpy as np
 import rclpy
-import rclpy.service
+from rclpy.client import Client as ServiceClient
 import yaml
 from action_msgs.msg import GoalStatus
 from ament_index_python.packages import get_package_share_directory
 from cv_bridge import CvBridge
+import rclpy.task
+from robot_3_interfaces.srv import QaDice
 
 # Fanuc packages
 from fanuc_interfaces.action import (
@@ -125,7 +125,7 @@ class ControlNode(Node):
 
         # Robot State Vars
         self._current_step = CurrentState.WAITING_FOR_HANDOFF
-        self.processing_command = False
+        self._processing_command = False
         self.r2_status = RobotStatus(state=-1)
         self.prox_readings = ProxReadings(right=False, left=False)
         self.qa_image: cv2.typing.MatLike = BLANK_IMAGE
@@ -137,9 +137,9 @@ class ControlNode(Node):
             callback=self._process_commands,
         )
         self._qa_pass = False
-        self._read_qa = False
-        self._last_img_cls = ""
-        self._qa_img = None
+        self._qa_image = BLANK_IMAGE
+        self._qa_class = ""
+        self.qa_complete = True
         self._error_state = ErrorState.OK
         self._state_timer = self.create_timer(
             0.5,
@@ -163,36 +163,35 @@ class ControlNode(Node):
             self._r4_conv_callback,
             10
         )
-        self.create_subscription(
-            String,
-            f'/{self.robot_name}/qa/status',
-            self._qa_status_callback,
-            10
-        )
-        self.create_subscription(
-            Image,
-            f'/{self.robot_name}/qa/img',
-            self._qa_image_callback,
-            10
-        )
         self._state_pub = self.create_publisher(
             FanucStatus,
             f"/{self.robot_name}/robot_state",
             10
         )
         self.bridge = CvBridge()
+        self._dice_client = self.create_client(srv_type=QaDice, srv_name=f"/{self.robot_name}/qa_dice")
         order = Order(
             order_type=OrderType.MOVE_JOINT,
             args=get_pos_goal("Home")
         )
         self.order_queue.put(order)
+        order  = Order(
+            order_type=OrderType.MOVE_CONVEYOR,
+            args=Conveyor.Goal(command="stop")
+        )
+        self.order_queue.put(order)
 
-
-    def _qa_status_callback(self, cls: String):
-        self._last_img_cls = cls.data
-
-    def _qa_image_callback(self, img: Image):
-        self.qa_image = self.bridge.imgmsg_to_cv2(img)
+    def _qa_callback(self, resp: QaDice.Response):
+        self._qa_class = resp.obj_cls
+        self.qa_image = self.bridge.imgmsg_to_cv2(resp.qa_image)
+        self.qa_complete = True
+        if self.current_step == CurrentState.QA:
+            if self._qa_class == "three":
+                self.dice_qa_state = True
+                self.current_step = CurrentState.QA_PASS
+            else:
+                self.dice_qa_state = False
+                self.current_step = CurrentState.QA_FAIL
 
     @property
     def current_step(self) -> CurrentState:
@@ -205,16 +204,12 @@ class ControlNode(Node):
         self._current_step = value
         self._publish_robot_status()
 
-        # self._state_pub.publish(
-        #     String(data=f"Current State: {self._current_step.name}")
-        # )
-
     @property
     def dice_qa_state(self):
         return self._qa_pass
 
     @dice_qa_state.setter
-    def _update_qa(self, state):
+    def _update_qa(self, state:bool):
         self._qa_pass = state
         self._publish_robot_status()
 
@@ -340,7 +335,12 @@ class ControlNode(Node):
                 order_type=OrderType.MOVE_CART,
                 args=get_pos_goal("Conv1AfterPlace", joint=False)
             )
-            time.sleep(2)
+            self.order_queue.put(order)
+            # Move to conveyor 2
+            order = Order(
+                order_type=OrderType.MOVE_JOINT,
+                args=get_pos_goal("Conv2Block")
+            )
             self.order_queue.put(order)
             self.current_step = CurrentState.SEND_TO_R4
         elif self.current_step == CurrentState.SEND_TO_R4:
@@ -355,12 +355,7 @@ class ControlNode(Node):
                 args=Conveyor.Goal(command="forward")
             )
             self.order_queue.put(order)
-            # Move to conveyor 2
-            order = Order(
-                order_type=OrderType.MOVE_JOINT,
-                args=get_pos_goal("Conv2Block")
-            )
-            self.order_queue.put(order)
+
             self.current_step = CurrentState.WAIT_FOR_CONV1
             pass
         elif self.current_step == CurrentState.WAIT_FOR_CONV1:
@@ -408,14 +403,13 @@ class ControlNode(Node):
             # Wait for orders to complete
             if self.processing_command:
                 return
+            if self.qa_complete:
+                # Send QA Service
+                self.qa_complete = False
+                self._dice_client.wait_for_service()
+                future = self._dice_client.call_async(QaDice.Request())
+                future.add_done_callback(self._qa_callback)
 
-            # Check the image QA class
-            if self._last_img_cls == "three":
-                self._qa_pass = True
-                self.current_step = CurrentState.QA_PASS
-            else: 
-                self._qa_pass = False
-                self.current_step = CurrentState.QA_FAIL
         elif self.current_step == CurrentState.QA_PASS:
             if self.processing_command:
                 return
@@ -485,18 +479,24 @@ class ControlNode(Node):
             if self.current_step == CurrentState.WAITING_FOR_R4_CONV:
                 self.current_step = CurrentState.MOVE_TO_QA
 
+    @property
+    def processing_command(self):
+        if self.order_queue.empty() and not self._processing_command:
+            return False
+        return True
+
     def _process_commands(self):
         if self.order_queue.empty():
             return
-        if self.processing_command:
+        if self._processing_command:
             self.get_logger().info("Early Return processing command")
             return
-        self.processing_command = True
         try:
+            self._processing_command = True
             new_order = self.order_queue.get()
         except Exception as e:
             self.get_logger().error(f"Error getting order: {e}")
-            self.processing_command = False
+            self._processing_command = False
             return
         # Check if the order is valid
         if not hasattr(self, new_order.order_type.value):
@@ -504,14 +504,35 @@ class ControlNode(Node):
         self.get_logger().info("Processing command")
         self.get_logger().info(f"Order: {new_order.order_type.name}")
         self.get_logger().info(f"Args: {new_order.args}")
-        caller: ActionClient = getattr(self, new_order.order_type.value)
-        self.send_goal(caller, new_order.args)
+        caller: ActionClient|ServiceClient = getattr(self, new_order.order_type.value)
+        if isinstance(caller, ActionClient):
+            self.send_goal(caller, new_order.args)
+        else:
+            self.send_action(caller, new_order.args)
+
+    def send_action(self, client: ServiceClient, srv):
+        self.get_logger().info('Waiting for Service server...')
+        client.wait_for_service()
+        self.get_logger().info('Sending service request...')
+        future = client.call_async(srv)
+        future.add_done_callback(
+            self.get_srv_callback
+        )
+        pass
+
+    def get_srv_callback(self, future: rclpy.task.Future):
+        result = future.result()
+        if future.cancelled():
+            self.get_logger().info('Service Canceled ')
+        elif future.done():
+            self.get_logger().info('Goal succeeded! Result: {0}'.format(result))
+        self._processing_command = False
 
     def goal_response_callback(self, future):
         goal_handle = future.result()
         if not goal_handle.accepted:
             self.get_logger().info('Goal rejected :(')
-            self.processing_command = False
+            self._processing_command = False
             return
         self.get_logger().info('Goal accepted :)')
         get_result_future = goal_handle.get_result_async()
@@ -527,9 +548,9 @@ class ControlNode(Node):
             self.get_logger().info('Goal succeeded! Result: {0}'.format(result))
         else:
             self.get_logger().info('Goal failed with status: {0}'.format(status))
-        self.processing_command = False
+        self._processing_command = False
 
-    def send_goal(self, handler, goal, wait=True):
+    def send_goal(self, handler:ActionClient, goal, wait=True):
         self.get_logger().info('Waiting for action server...')
         handler.wait_for_server()
         self.get_logger().info('Sending goal request...')

@@ -22,7 +22,7 @@
 import math
 import typing
 
-import FANUCethernetipDriver
+from dependencies import FANUCethernetipDriver
 
 ## The mode of operation; 
 
@@ -141,7 +141,7 @@ class robot:
         CurPosList = FANUCethernetipDriver.returnCartesianCurrentPostion(self.robot_IP)
 
         #print("CURPOS=", CurPosList)
-        return CurPosList[2:11]
+        return CurPosList[2:8]
 
 
     # write PR[1] Cartesian Coordinates
@@ -166,7 +166,7 @@ class robot:
                     self.write_cartesian_position(coord, blocking=blocking) # Loop through all coords in list and run them.
             else:
                 raise Warning("If passing a list of lists, all elements must be lists!")
-        elif len(coord) == 9:
+        elif len(coords) == 9:
             if coords[3] > 179.9 or coords[3] < -179.9:
                 raise Warning(f"W, P and R should be in the range of [-179.9, 179.9], got {coords[3]}")
             if coords[4] > 179.9 or coords[4] < -179.9:
@@ -436,8 +436,4 @@ class robot:
         r1 = bool(FANUCethernetipDriver.readRobotInput(self.robot_IP, 1)) # RI[1] Schunk Gripper off
         # If not closed, its open
         return not r1
-
-
-r = robot()
-
 

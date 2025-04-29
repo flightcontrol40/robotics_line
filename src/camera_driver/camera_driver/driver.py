@@ -62,12 +62,18 @@ def main():
     cam = CheepAssChineseCamera()
     node.get_logger().info("Starting camera")
     try:
-        cam.start_camera()
-        node.get_logger().info("camera started")
-        for frame in cam:
-            node.get_logger().debug('Publishing image')
-            node.publish_image(frame)
-            rclpy.spin_once(node, timeout_sec=0.001)
+
+        while True:
+            cam.start_camera()
+            node.get_logger().info("camera started")
+            i = 0
+            while i < 1000:
+                frame = cam.get_frame()
+                node.get_logger().debug('Publishing image')
+                node.publish_image(frame)
+                rclpy.spin_once(node, timeout_sec=-1)
+                i+= 1
+            cam.release_camera()
     except Exception as e:
         node.get_logger().error(f"Error: {e}")
     finally:
