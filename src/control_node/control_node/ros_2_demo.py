@@ -1,6 +1,6 @@
 """
- This is a test of all the actions and (if added) their feedbacks
- https://github.com/UofI-CDACS/fanuc_ros2_drivers
+
+
 """
 # ROS packages
 import asyncio
