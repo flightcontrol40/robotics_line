@@ -8,7 +8,7 @@ import camera_driver.mvsdk as mvsdk
 class CameraConnectionError(Exception):
     """Raised For camera connection issues."""
 
-class CheepAssChineseCamera:
+class Camera:
     """An interface for the overhead camera."""
 
     def __init__(self):
