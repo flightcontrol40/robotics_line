@@ -5,9 +5,8 @@ import numpy as np
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image
-from robot_3_interfaces.srv import GetFrame
 
-from camera_driver.camera import CheepAssChineseCamera
+from camera_driver.camera import Camera
 
 
 def cv2_to_image(cv_img):
@@ -39,7 +38,7 @@ class CameraDriver(Node):
     def __init__(self):
         super().__init__('camera_driver')
         # QoS history depth of 10
-        self.cam = CheepAssChineseCamera()
+        self.cam = Camera()
         self.cam.start_camera()
         self.publisher_ = self.create_publisher(
             Image,
