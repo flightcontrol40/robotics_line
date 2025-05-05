@@ -2,6 +2,7 @@
 import asyncio
 import os
 import sys
+import time
 
 import dependencies.FANUCethernetipDriver as FANUCethernetipDriver
 import rclpy
@@ -61,17 +62,21 @@ class schunk_gripper_server(Node):
     async def execute_callback(self, goal_handle):
         # WIP: Add Try/Except to catch possible error
         self.bot.schunk_gripper(self.goal.command)
-        asyncio.sleep(0.5)  # Wait for the gripper to finish
         goal_handle.succeed()
         result = SchunkGripper.Result()
         result.success = True
         self.goal = SchunkGripper.Goal()  # Reset
+        asyncio.run(wait())
+
         return result
 
     def destroy(self):
         self._action_server.destroy()
         super().destroy_node()
 
+
+async def wait():
+    await asyncio.sleep(0.5)
 
 def main(args=None):
     rclpy.init()

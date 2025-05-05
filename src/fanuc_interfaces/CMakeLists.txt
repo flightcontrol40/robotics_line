@@ -42,6 +42,7 @@ set(msg_files
    "msg/IsMoving.msg"
    "msg/CurSpeed.msg"
    "msg/ProxReadings.msg"
+   "msg/State.msg"
 )
 
 set(srv_files

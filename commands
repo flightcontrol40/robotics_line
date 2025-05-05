@@ -9,11 +9,12 @@ ros2 launch ./fanuc_ros2_drivers/launch/start.launch.py
 
 
 # Control Node
-ros2 run control_node main 
+ros2 run control_node main
 
 #Sbot State update
-ros2 topic pub "/dave/Status" sbot_interfaces/RobotStatus "state: 8"
-ros2 topic pub "/dave/Status" sbot_interfaces/RobotStatus "state: 1"
+ros2 topic pub "/dave/status" sbot_interfaces/RobotStatus "state: 8"
+ros2 topic pub "/dave/status" sbot_interfaces/RobotStatus "state: 1"
 
 #R4 State Update
-ros2 topic pub "/bunsen/dice_sent" std_msgs/Bool "data: true"
+ros2 topic pub "/bunsen/state" fanuc_interfaces/State "state: 4"
+ros2 topic pub "/bunsen/current_state" fanuc_interfaces/State "state: 4"

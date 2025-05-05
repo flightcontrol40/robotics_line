@@ -29,7 +29,7 @@ from fanuc_interfaces.action import (
     JointPose,
     SchunkGripper,
 )
-from fanuc_interfaces.msg import ProxReadings
+from fanuc_interfaces.msg import ProxReadings, State
 from fanuc_interfaces.srv import SetSpeed
 from rclpy.action.client import ActionClient
 from rclpy.node import Node
@@ -37,16 +37,16 @@ from sensor_msgs.msg import Image
 from std_msgs.msg import Bool, String
 
 from robot_3_interfaces.msg import RobotStatus as FanucStatus
-from sbot_interfaces.msg import RobotStatus  # noqa: F401
+from sbot_interfaces.msg import SbotStatus
 
 share_dir = get_package_share_directory("control_node")
 
 ROBOT_NAME = 'beaker'
 ROBOT_IP = '172.29.208.124'
-R2_STATUS_TOPIC = "/dave/Status"
+R2_STATUS_TOPIC = "/dave/status"
 POSITIONS_FILE = share_dir +"/data/pos2.yaml"
 CONV1_TOPIC = f"/{ROBOT_NAME}/prox_readings"
-R4_CONV_TOPIC = "/bunsen/dice_sent"
+R4_CONV_TOPIC = "/bunsen/current_state"
 POSITIONS = {}
 
 with open(POSITIONS_FILE, "r") as fd:
@@ -92,6 +92,7 @@ class CurrentState(Enum):
     QA_PASS             = 10
     QA_FAIL             = 11
     RANDOM_PLACE        = 12
+    MOVE_TO_HANDOFF     = 13
 
 class OrderType(Enum):
     """Order Types"""
@@ -121,7 +122,7 @@ class ControlNode(Node):
         # Robot State Vars
         self._current_step = CurrentState.WAITING_FOR_HANDOFF
         self._processing_command = False
-        self.r2_status = RobotStatus(state=-1)
+        self.r2_status = SbotStatus(state=-1)
         self.prox_readings = ProxReadings(right=False, left=False)
         self.qa_image: cv2.typing.MatLike = BLANK_IMAGE
 
@@ -131,11 +132,15 @@ class ControlNode(Node):
             0.1,
             callback=self._process_commands,
         )
+        self._rotate_count = 0
+        self.new_order = None
         self._qa_pass = False
         self._qa_image = BLANK_IMAGE
         self._qa_class = ""
         self.qa_complete = True
         self._error_state = ErrorState.OK
+        self.r4_state = -1
+        self._qa_lock = False
         self._state_timer = self.create_timer(
             0.5,
             callback=self._check_state,
@@ -145,7 +150,7 @@ class ControlNode(Node):
             callback=self._show_img,
         )
         self.create_subscription(
-            RobotStatus,
+            SbotStatus,
             R2_STATUS_TOPIC,
             self._robot_status_callback,
             10
@@ -157,7 +162,7 @@ class ControlNode(Node):
             10
         )
         self.create_subscription(
-            Bool,
+            State,
             R4_CONV_TOPIC,
             self._r4_conv_callback,
             10
@@ -179,14 +184,20 @@ class ControlNode(Node):
             args=Conveyor.Goal(command="stop")
         )
         self.order_queue.put(order)
+        grab_order = Order(
+            order_type=OrderType.GRIPPER,
+            args=SchunkGripper.Goal(command="open")
+        )
+        self.order_queue.put(grab_order)
         cv2.namedWindow("QA Result", cv2.WINDOW_NORMAL)
         self.dice_qa_state = False
         self._doing_qa = False
+        self.current_step = CurrentState.MOVE_TO_CONV1
 
     def _show_img(self):
         if not self._doing_qa:
             self._doing_qa = True
-            self.get_logger().info("QA Request")
+            # self.get_logger().info("QA Request")
             self._dice_client.wait_for_service()
             future = self._dice_client.call_async(QaDice.Request())
             future.add_done_callback(self._qa_callback)
@@ -194,13 +205,11 @@ class ControlNode(Node):
         cv2.waitKey(1)
 
     def _qa_callback(self, future: rclpy.task.Future):
-        self.get_logger().info("QA Resp")
         resp: QaDice.Response = future.result()
         self._qa_class = resp.obj_cls
         self.qa_image = self.bridge.imgmsg_to_cv2(resp.qa_image)
-        self.get_logger().info(f"QA Class: {self._qa_class}")
-        self.qa_complete = True
-        self._doing_qa = False
+        if not self.qa_complete:
+            self.get_logger().info(f"QA Class: {self._qa_class}")
         if self.current_step == CurrentState.QA:
             if self._qa_class == "three":
                 self.dice_qa_state = True
@@ -208,7 +217,8 @@ class ControlNode(Node):
             else:
                 self.dice_qa_state = False
                 self.current_step = CurrentState.QA_FAIL
-
+        self.qa_complete = True
+        self._doing_qa = False
 
     @property
     def current_step(self) -> CurrentState:
@@ -249,7 +259,7 @@ class ControlNode(Node):
         )
         self._state_pub.publish(state)
 
-    def _robot_status_callback(self, msg: RobotStatus):
+    def _robot_status_callback(self, msg: SbotStatus):
         """Callback for robot 2 status"""
         self.r2_status = msg
         self.get_logger().info(f"R2 Status: {self.r2_status.state}")
@@ -306,8 +316,14 @@ class ControlNode(Node):
                 args=SchunkGripper.Goal(command="close")
             )
             self.order_queue.put(grab_order)
-            self.current_step = CurrentState.IN_HANDOFF
+
+            self.current_step = CurrentState.MOVE_TO_HANDOFF
             return
+        elif self.current_step == CurrentState.MOVE_TO_HANDOFF:
+            if self.processing_command:
+                return
+            self.current_step = CurrentState.IN_HANDOFF
+
         elif self.current_step == CurrentState.IN_HANDOFF:
             # Wait for orders to complete
             if self.processing_command:
@@ -377,7 +393,12 @@ class ControlNode(Node):
         elif self.current_step == CurrentState.WAIT_FOR_CONV1:
             pass
         elif self.current_step == CurrentState.WAITING_FOR_R4_CONV:
-            pass
+            if self.processing_command:
+                return
+            self.get_logger().info(f"Waiting on R4: State: {self.r4_state}")
+            if self.r4_state == 4:
+                self.get_logger().info("R4 has sent the dice back")
+                self.current_step = CurrentState.MOVE_TO_QA
         elif self.current_step == CurrentState.MOVE_TO_QA:
             if self.processing_command:
                 return
@@ -434,45 +455,217 @@ class ControlNode(Node):
             self.get_logger().info("QA Pass, Moving to random place")
             order = Order(
                 order_type=OrderType.MOVE_JOINT,
-                args=get_pos_goal("RandomPlaceCenter")
+                args=get_pos_goal("RandomPlaceCenterAbove")
             )
             self.order_queue.put(order)
+
             pos = copy(POSITIONS["RandomPlaceCenter_cart"])
-            pos[0] += (random.random - 0.5) * 50
-            pos[1] += (random.random - 0.5) * 50
+            pos[0] += random.randrange(-50,50)
+            pos[1] += random.randrange(-50,50)
+            print(f"Random pos: {pos}")
             POSITIONS["RandomPlace_cart"] = pos
+
             order = Order(
                 order_type=OrderType.MOVE_CART,
-                args=get_pos_goal("RandomPlace_cart")
+                args=get_pos_goal("RandomPlace",joint=False)
             )
+            self.order_queue.put(order)
+
             order = Order(
                 order_type=OrderType.GRIPPER,
                 args=SchunkGripper.Goal(command="open")
             )
             self.order_queue.put(order)
+
             pos[2] += 100
             POSITIONS["RandomPlaceAfter_cart"] = pos
+            print(f"Random pos: {pos}")
+
             order = Order(
                 order_type=OrderType.MOVE_CART,
-                args=get_pos_goal("RandomPlaceAfter_cart")
+                args=get_pos_goal("RandomPlaceAfter", joint=False)
             )
+            self.order_queue.put(order)
+            order = Order(
+                order_type=OrderType.MOVE_JOINT,
+                args=get_pos_goal("RandomPlaceCenterAbove")
+            )
+            self.order_queue.put(order)
+
+            self.current_step = CurrentState.RANDOM_PLACE
         elif self.current_step == CurrentState.QA_FAIL:
-            # TODO: Add Rotate Dice Code
             if self.processing_command:
                 return
-
-            # QA has failed,
-            self.get_logger().info("QA Fail")
+            self.get_logger().info(f"QA Fail, State: {self._qa_class}")
+            if self._rotate_count <= 3:
+                self.rotateB()
+            elif self._rotate_count == 4:
+                self.rotateP()
+                self.rotateB()
+            elif self._rotate_count == 5:
+                self.rotateP()
+                self.rotateB()
+                self.rotateB()
+            else:
+                self._rotate_count = 0
+                return
+            self._rotate_count += 1
+            self.current_step = CurrentState.QA
             pass
         elif self.current_step == CurrentState.RANDOM_PLACE:
             # Wait for orders to complete
             if self.processing_command:
                 return
-
+            order = Order(
+                order_type=OrderType.MOVE_JOINT,
+                args=get_pos_goal("Home")
+            )
+            self.order_queue.put(order)
             self.current_step = CurrentState.WAITING_FOR_HANDOFF
             pass
         else:
             raise ValueError(f"Invalid State {self.current_step}")
+
+    def rotateB(self):
+        order = Order(
+            order_type=OrderType.MOVE_JOINT,
+            args=get_pos_goal("rotateB1")
+        )
+        self.order_queue.put(order)
+
+        order = Order(
+            order_type=OrderType.GRIPPER,
+            args=SchunkGripper.Goal(command="open")
+        )
+        self.order_queue.put(order)
+
+        order = Order(
+            order_type=OrderType.MOVE_JOINT,
+            args=get_pos_goal("rotateB2")
+        )
+        self.order_queue.put(order)
+
+        order = Order(
+            order_type=OrderType.MOVE_JOINT,
+            args=get_pos_goal("rotateB3")
+        )
+        self.order_queue.put(order)
+
+        order = Order(
+            order_type=OrderType.MOVE_JOINT,
+            args=get_pos_goal("rotateB4")
+        )
+        self.order_queue.put(order)
+
+        order = Order(
+            order_type=OrderType.GRIPPER,
+            args=SchunkGripper.Goal(command="close")
+        )
+        self.order_queue.put(order)
+
+        order = Order(
+            order_type=OrderType.MOVE_JOINT,
+            args=get_pos_goal("scanPos")
+        )
+        self.order_queue.put(order)
+
+    def rotateP(self):
+        order = Order(
+            order_type=OrderType.MOVE_JOINT,
+            args=get_pos_goal("rotateB4")
+        )
+        self.order_queue.put(order)
+
+        order = Order(
+            order_type=OrderType.GRIPPER,
+            args=SchunkGripper.Goal(command="open")
+        )
+        self.order_queue.put(order)
+
+        order = Order(
+            order_type=OrderType.MOVE_JOINT,
+            args=get_pos_goal("rotateB3")
+        )
+        self.order_queue.put(order)
+
+        order = Order(
+            order_type=OrderType.MOVE_JOINT,
+            args=get_pos_goal("rotateC2")
+        )
+        self.order_queue.put(order)
+
+        order = Order(
+            order_type=OrderType.MOVE_JOINT,
+            args=get_pos_goal("rotateC1")
+        )
+        self.order_queue.put(order)
+
+        order = Order(
+            order_type=OrderType.GRIPPER,
+            args=SchunkGripper.Goal(command="close")
+        )
+        self.order_queue.put(order)
+
+        order = Order(
+            order_type=OrderType.MOVE_JOINT,
+            args=get_pos_goal("rotateC2")
+        )
+        self.order_queue.put(order)
+
+        order = Order(
+            order_type=OrderType.MOVE_JOINT,
+            args=get_pos_goal("scanPos")
+        )
+        self.order_queue.put(order)
+
+    def rotateA(self):
+        order = Order(
+            order_type=OrderType.MOVE_JOINT,
+            args=get_pos_goal("RandomPlaceCenter")
+        )
+        self.order_queue.put(order)
+
+        order = Order(
+            order_type=OrderType.GRIPPER,
+            args=SchunkGripper.Goal(command="open")
+        )
+        self.order_queue.put(order)
+
+        order = Order(
+            order_type=OrderType.MOVE_JOINT,
+            args=get_pos_goal("rotateA1")
+        )
+        self.order_queue.put(order)
+
+        order = Order(
+            order_type=OrderType.MOVE_JOINT,
+            args=get_pos_goal("rotateA2")
+        )
+        self.order_queue.put(order)
+
+        order = Order(
+            order_type=OrderType.MOVE_JOINT,
+            args=get_pos_goal("rotateA3")
+        )
+        self.order_queue.put(order)
+
+        order = Order(
+            order_type=OrderType.GRIPPER,
+            args=SchunkGripper.Goal(command="close")
+        )
+        self.order_queue.put(order)
+
+        order = Order(
+            order_type=OrderType.MOVE_JOINT,
+            args=get_pos_goal("rotateA4")
+        )
+        self.order_queue.put(order)
+
+        order = Order(
+            order_type=OrderType.MOVE_JOINT,
+            args=get_pos_goal("scanPos")
+        )
+        self.order_queue.put(order)
 
     async def conveyer_sensor_callback(self, msg: ProxReadings):
         self.prox_readings = msg
@@ -488,12 +681,9 @@ class ControlNode(Node):
                 self.order_queue.put(order)
                 self.current_step = CurrentState.WAITING_FOR_R4_CONV
 
-    # TODO: Update this to get the actual interface from r4
-    async def _r4_conv_callback(self, msg: Bool):
-        if msg.data:
-            self.get_logger().info("R4 has sent the dice back")
-            if self.current_step == CurrentState.WAITING_FOR_R4_CONV:
-                self.current_step = CurrentState.MOVE_TO_QA
+    async def _r4_conv_callback(self, msg: State):
+        self.r4_state = msg.state
+
 
     @property
     def processing_command(self):
@@ -508,22 +698,20 @@ class ControlNode(Node):
             return
         try:
             self._processing_command = True
-            new_order = self.order_queue.get()
+            if self.new_order is None:
+                self.new_order = self.order_queue.get()
         except Exception as e:
             self.get_logger().error(f"Error getting order: {e}")
             self._processing_command = False
             return
         # Check if the order is valid
-        if not hasattr(self, new_order.order_type.value):
+        if not hasattr(self, self.new_order.order_type.value):
             raise KeyError("Invalid Order Name")
-        self.get_logger().info("Processing command")
-        self.get_logger().info(f"Order: {new_order.order_type.name}")
-        self.get_logger().info(f"Args: {new_order.args}")
-        caller: ActionClient|ServiceClient = getattr(self, new_order.order_type.value)
+        caller: ActionClient|ServiceClient = getattr(self, self.new_order.order_type.value)
         if isinstance(caller, ActionClient):
-            self.send_goal(caller, new_order.args)
+            self.send_goal(caller, self.new_order.args)
         else:
-            self.send_action(caller, new_order.args)
+            self.send_action(caller, self.new_order.args)
 
     def send_action(self, client: ServiceClient, srv):
         self.get_logger().info('Waiting for Service server...')
@@ -549,18 +737,20 @@ class ControlNode(Node):
             self.get_logger().info('Goal rejected :(')
             self._processing_command = False
             return
-        self.get_logger().info('Goal accepted :)')
+        # self.get_logger().info('Goal accepted :)')
         get_result_future = goal_handle.get_result_async()
         get_result_future.add_done_callback(self.get_result_callback)
 
     def feedback_callback(self, feedback:JointPose.Feedback):
-        self.get_logger().info('Received feedback: {0}'.format(feedback))
+        pass
+        # self.get_logger().info('Received feedback: {0}'.format(feedback))
 
     def get_result_callback(self, future):
-        result = future.result().result
+        # result = future.result().result
         status = future.result().status
         if status == GoalStatus.STATUS_SUCCEEDED:
-            self.get_logger().info('Goal succeeded! Result: {0}'.format(result))
+            # self.get_logger().info('Goal succeeded! Result: {0}'.format(result))
+            self.new_order = None
         else:
             self.get_logger().info('Goal failed with status: {0}'.format(status))
         self._processing_command = False
@@ -568,7 +758,7 @@ class ControlNode(Node):
     def send_goal(self, handler:ActionClient, goal, wait=True):
         self.get_logger().info('Waiting for action server...')
         handler.wait_for_server()
-        self.get_logger().info('Sending goal request...')
+        # self.get_logger().info('Sending goal request...')
         send_goal_future = handler.send_goal_async(
             goal,
             feedback_callback=self.feedback_callback

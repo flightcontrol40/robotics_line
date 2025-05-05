@@ -47,7 +47,7 @@ class CameraDriver(Node):
             10
         )
         self._img_timer = self.create_timer(
-            0.03,
+            0.5,
             callback=self.capture_image
         )
 
