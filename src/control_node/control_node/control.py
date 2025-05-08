@@ -30,7 +30,7 @@ from fanuc_interfaces.action import (
     JointPose,
     SchunkGripper,
 )
-from fanuc_interfaces.msg import ProxReadings, State
+from fanuc_interfaces.msg import ProxReadings, State, CurCartesian
 from fanuc_interfaces.srv import SetSpeed
 from rclpy.action.client import ActionClient
 from rclpy.node import Node

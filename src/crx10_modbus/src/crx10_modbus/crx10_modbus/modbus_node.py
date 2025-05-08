@@ -6,6 +6,7 @@ from rclpy.node import Node
 
 from crx10_modbus.modbus import CRX10ModbusServer, PosData
 from robot_3_interfaces.msg import RobotStatus
+# from pymodbus.payload import BinaryPayloadBuilder
 
 name = 'beaker'
 ip = '172.29.208.124'
@@ -24,7 +25,7 @@ class ModbusServer(Node):
             
         )
         self._gripper_sub = self.create_subscription(
-            CurCartesian,
+            CurGripper,
             f'/{robot_name}/grip_status',
             qos_profile=10,
 
@@ -39,6 +40,7 @@ class ModbusServer(Node):
 
     def _update_pos(self, pos: CurCartesian):
         self.get_logger().info(f'Got Pos: {pos.pose}')
+        pos.pose
         encode_pos = self.server.mapper.convert_to_registers(
             list(pos.pose),
             data_type=self.server.mapper.DATATYPE.FLOAT32
@@ -50,14 +52,36 @@ class ModbusServer(Node):
         # self.server.mapper.position = PosData(pos.pose)
 
     def _update_gripper(self, grip: CurGripper):
-        self.get_logger().debug(f'Got Gripper State: {grip.open}')
+        self.get_logger().info(f'Got Gripper State: {grip.open}')
+
         if grip.open:
-            self.server.mapper.gripper = "open"
+            grip_encode = self.server.mapper.convert_to_registers(
+                [1],
+                data_type=self.server.mapper.DATATYPE.BITS
+            )
+            self.server.mapper.di.setValues(3004, grip_encode)
         else:
-            self.server.mapper.gripper = "close"
+            grip_encode = self.server.mapper.convert_to_registers(
+                [0],
+                data_type=self.server.mapper.DATATYPE.BITS
+            )
+            self.server.mapper.di.setValues(3004, grip_encode)
+
 
     def _update_robot_status(self, status: RobotStatus):
-        self.server.mapper.robot_status = status
+        self.get_logger().info(f'Got robot State: {status}')
+        encode = self.server.mapper.convert_to_registers(
+            [
+                status.process_state,
+                status.error_code,
+                1 if status.die_qa else 0,
+                1 if status.r2_handoff else 0
+            ],
+            data_type=self.server.mapper.DATATYPE.UINT16
+        )
+        self.server.mapper.ir.setValues(3013, encode)
+
+
 
 def main():
     rclpy.init()
@@ -70,12 +94,12 @@ def main():
 
 async def modbus_loop(server: CRX10ModbusServer):
     server.init_server()
-    await server.server.serve_forever(background=True)
+    await server.server.serve_forever()
 
 async def ros_loop(node: "ModbusServer"):
     print("Node started.")
     while rclpy.ok():
-        rclpy.spin_once(node, timeout_sec=0)
+        rclpy.spin_once(node)
         await asyncio.sleep(1e-4)
 
 if __name__ == "__main__":

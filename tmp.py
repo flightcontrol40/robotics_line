@@ -1,0 +1,107 @@
+#!/usr/bin/env python3
+"""Pymodbus synchronous client example.
+
+An example of a single threaded synchronous client.
+
+usage: simple_sync_client.py
+
+All options must be adapted in the code
+The corresponding server must be started before e.g. as:
+    python3 server_sync.py
+"""
+
+# --------------------------------------------------------------------------- #
+# import the various client implementations
+# --------------------------------------------------------------------------- #
+import pymodbus.client as ModbusClient
+from pymodbus import (
+    FramerType,
+    ModbusException,
+    pymodbus_apply_logging_config,
+)
+
+
+def run_sync_simple_client(comm, host, port, framer=FramerType.SOCKET):
+    """Run sync client."""
+    # activate debugging
+    # pymodbus_apply_logging_config("DEBUG")
+
+    print("get client")
+    client: ModbusClient.ModbusBaseSyncClient
+    if comm == "tcp":
+        client = ModbusClient.ModbusTcpClient(
+            host,
+            port=port,
+            framer=framer,
+            # timeout=10,
+            # retries=3,
+            # source_address=("localhost", 0),
+        )
+    elif comm == "udp":
+        client = ModbusClient.ModbusUdpClient(
+            host,
+            port=port,
+            framer=framer,
+            # timeout=10,
+            # retries=3,
+            # source_address=None,
+        )
+    elif comm == "serial":
+        client = ModbusClient.ModbusSerialClient(
+            port,
+            framer=framer,
+            # timeout=10,
+            # retries=3,
+            baudrate=9600,
+            bytesize=8,
+            parity="N",
+            stopbits=1,
+            # handle_local_echo=False,
+        )
+    else:
+        print(f"Unknown client {comm} selected")
+        return
+
+    print("connect to server")
+    client.connect()
+
+    print("get and verify data")
+
+    try:
+        rr = client.read_discrete_inputs(3003, count=1)
+    except ModbusException as exc:
+        print(f"Received ModbusException({exc}) from library")
+        client.close()
+        return
+    if rr.isError():
+        print(f"Received exception from device ({rr})")
+        # THIS IS NOT A PYTHON EXCEPTION, but a valid modbus message
+        client.close()
+        return
+    
+    value_bool = client.convert_from_registers(rr.registers, data_type=client.DATATYPE.BITS)
+    
+    print(f"Got Gripper: {value_bool}")
+    print(f"Got Gripper: {str(rr)}")
+
+    try:
+        rr = client.read_input_registers(3000, count=12)
+    except ModbusException as exc:
+        print(f"Received ModbusException({exc}) from library")
+        client.close()
+        return
+    if rr.isError():
+        print(f"Received exception from device ({rr})")
+        # THIS IS NOT A PYTHON EXCEPTION, but a valid modbus message
+        client.close()
+        return
+
+    value_int32 = client.convert_from_registers(rr.registers, data_type=client.DATATYPE.FLOAT32)
+    print(f"Got float: {value_int32}")
+
+    print("close connection")
+    client.close()
+
+
+if __name__ == "__main__":
+    run_sync_simple_client("tcp", "127.0.0.1", "5020")

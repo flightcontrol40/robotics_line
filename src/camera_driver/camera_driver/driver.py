@@ -8,6 +8,7 @@ from sensor_msgs.msg import Image
 
 from camera_driver.camera import Camera
 from robot_3_interfaces.srv import GetFrame
+from rclpy.qos import QoSPresetProfiles
 
 
 def cv2_to_image(cv_img):
@@ -50,10 +51,16 @@ class CameraDriver(Node):
             .5,
             callback=self.capture_image
         )
+        self._publish_timer = self.create_timer(
+            .5,
+            callback=self.publish_image
+        )
+        self._latest_img: np.ndarray = None
         self.srv = self.create_service(
             GetFrame,
             "camera/take_img",
-            self.service_callback
+            self.service_callback,
+            qos_profile=QoSPresetProfiles.SENSOR_DATA
         )
 
     def service_callback(self, request, response):
@@ -67,13 +74,15 @@ class CameraDriver(Node):
         return response
 
     def capture_image(self):
-        frame = self.cam.get_frame()
-        self.publish_image(frame)
+        self._latest_img = self.cam.get_frame()
+        # self.publish_image(frame)
 
-    def publish_image(self, frame: np.ndarray):
+    def publish_image(self):
         self.get_logger().info("Publishing Image")
+        if self._latest_img is None:
+            return
         # Convert OpenCV image (BGR8) to ROS2 Image
-        img_msg = cv2_to_image(frame)
+        img_msg = cv2_to_image(self._latest_img)
         # Stamp with acquisition time
         img_msg.header.stamp = self.get_clock().now().to_msg()
         # Optical frame of your camera

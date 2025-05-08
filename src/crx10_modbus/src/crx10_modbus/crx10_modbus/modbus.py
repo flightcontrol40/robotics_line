@@ -70,7 +70,12 @@ class PosData(metaclass=AutoProp):
 # Pitch                       33009    2    R    FLOAT32    degrees    Pitch
 # Yaw                         33011    2    R    FLOAT32    degrees    Yaw
 # Process State               33013    1    R    UINT        State Indicator
-# Error Code                  33014    1    R    UNIT        Error Code
+# Error Code                  33014
+# QA Dice QA                  33015
+# Handoff                     33016    1    R    UINT    bool    1 Ready to Handoff, 0 Not Ready
+# Conveyor Right Detection    33017    1    R    UINT    Bool    1 Detected, 0 Not Detected
+# Conveyor Left Detection     33018    1    R    UINT    Bool    1 Detected, 0 Not Detected
+
 
 class CRX10InputRegisters(ThreadSafeDataBlock):
 
@@ -78,9 +83,6 @@ class CRX10InputRegisters(ThreadSafeDataBlock):
         block = ModbusSparseDataBlock(values=values, mutable=True)
         super().__init__(block=block)
 
-# Turn 1                      13001    1    R    BIT    bool    Turn 1 
-# Turn 2                      13002    1    R    BIT    bool    Turn 2 
-# Turn 3                      13003    1    R    BIT    bool    Turn 3 
 # Gripper State               13004    1    R    BIT    bool    1 Close, 0 Open
 # Error Status                13005    1    R    BIT    bool    1 Error, 0 Ok
 # Die QA Pass Fail            13006    1    R    BIT    bool    1 R BIT bool 1 QA Pass, 0 QA Fail
@@ -99,7 +101,7 @@ class CRX10Mapper:
         self.convert_from_registers = convert_from_registers
         self.convert_to_registers = convert_to_registers
         self.DATATYPE = DATATYPE
-        self.ir: CRX10InputRegisters = CRX10InputRegisters(values= {k:0 for k in range(3001, 3015)})
+        self.ir: CRX10InputRegisters = CRX10InputRegisters(values= {k:0 for k in range(3001, 3019)})
         self.di: CRX10DiscreteInputs = CRX10DiscreteInputs(values={k:0 for k in range(3001, 3010)})
         self.server_context = self._build_context()
 
@@ -142,10 +144,10 @@ class CRX10Mapper:
     @gripper.setter
     def _set_gripper(self, _state):
         if _state == "open":
-            g_state = convert_to_registers(0, data_type= DATATYPE.FLOAT32)
+            g_state = convert_to_registers(0, data_type= DATATYPE.BITS)
             pass
         elif _state == "close":
-            g_state = convert_to_registers(1, data_type= DATATYPE.FLOAT32)
+            g_state = convert_to_registers(1, data_type= DATATYPE.BITS)
             pass
         else:
             raise ValueError("Gripper state must be one of 'open' or 'close'")
@@ -229,6 +231,5 @@ class CRX10ModbusServer():
             address=(self.host, self.port),  # listen address
             framer="socket",  # The framer strategy to use
         )
-        self.server
 
 

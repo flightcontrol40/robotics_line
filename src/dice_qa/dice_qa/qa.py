@@ -10,6 +10,8 @@ from ultralytics import YOLO
 from ultralytics.engine.results import Results
 from robot_3_interfaces.srv import QaDice, GetFrame
 import numpy as np
+from rclpy.qos import QoSPresetProfiles
+
 
 BLANK_IMAGE = np.zeros((1024,1000,3), np.uint8)
 ROBOT_NAME = 'beaker'
@@ -51,7 +53,7 @@ class DiceQA(Node):
             Image,
             '/camera/image_raw',
             self._img_sub,
-            10
+            qos_profile=QoSPresetProfiles.SENSOR_DATA
         )
         self._img_client = self.create_client(srv_type=GetFrame, srv_name="/camera/take_img")
         

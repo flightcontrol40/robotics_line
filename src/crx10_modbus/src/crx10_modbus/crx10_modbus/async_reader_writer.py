@@ -145,6 +145,7 @@ class ThreadSafeDataBlock(BaseModbusDataBlock):
         :param count: The number of values to retrieve
         :returns: The requested values from a:a+c
         """
+        print(f"GetValuesCall: address: {address}, count: {count}")
         with self.rwlock.get_reader_lock():
             return self.block.getValues(address, count)
  
