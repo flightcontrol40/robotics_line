@@ -1,0 +1,18 @@
+10,,,,,,
+X,33001,33002,TRUE,0,HoldingRegisterFloat,0
+Y,33003,33004,TRUE,0,HoldingRegisterFloat,2
+Z,33005,33006,TRUE,0,HoldingRegisterFloat,4
+R,33007,33008,TRUE,0,HoldingRegisterFloat,6
+P,33009,33010,TRUE,0,HoldingRegisterFloat,8
+W,33011,33012,TRUE,0,HoldingRegisterFloat,10
+State,33013,33013,TRUE,0,HoldingRegisterUInt16,12
+Error_Code,33014,33014,TRUE,0,HoldingRegisterUInt16,13
+Turn 1,13001,13002,TRUE,0,InputRegisterBit,0
+Turn 2,13002,13003,TRUE,0,InputRegisterBit,1
+Turn 3,13003,13004,TRUE,0,InputRegisterBit,2
+Gripper State,13004,13005,TRUE,0,InputRegisterBit,3
+Error Status,13005,13006,TRUE,0,InputRegisterBit,4
+Die QA Pass Fail,13006,13007,TRUE,0,InputRegisterBit,5
+Handoff,13007,13008,TRUE,0,InputRegisterBit,6
+Conveyor Right Detection,13008,13009,TRUE,0,InputRegisterBit,7
+Conveyor Left Detection,13009,13010,TRUE,0,InputRegisterBit,8

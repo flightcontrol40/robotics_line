@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-import os
 import sys
+import os
+import rclpy
 
 import dependencies.FANUCethernetipDriver as FANUCethernetipDriver
-import rclpy
+
 from dependencies.robot_controller import robot
 from fanuc_interfaces.msg import ProxReadings
 from rclpy.node import Node
@@ -12,16 +13,20 @@ FANUCethernetipDriver.DEBUG = False
 
 sys.path.append('./pycomm3/pycomm3')
 
-ROBOT_NAME = 'beaker'
-ROBOT_IP = '172.29.208.124'
 
 class check_prox(Node):
     def __init__(self):
         super().__init__('prox_pub')
 
-        self.bot = robot(ROBOT_IP)
-        self.publisher_ = self.create_publisher(ProxReadings, f"{ROBOT_NAME}/prox_readings", 10)
-        timer_period = 0.1
+        self.declare_parameters(
+            namespace='',
+            parameters=[('robot_ip','172.29.208.0'),
+                        ('robot_name','noNAME')] # custom, default
+        )
+
+        self.bot = robot(self.get_parameter('robot_ip').value)
+        self.publisher_ = self.create_publisher(ProxReadings, f"{self.get_parameter('robot_name').value}/prox_readings", 10)
+        timer_period = 0.5
         self.timer = self.create_timer(timer_period, self.timer_callback)
 
     def timer_callback(self):

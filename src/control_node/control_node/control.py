@@ -4,6 +4,7 @@
 """
 # ROS packages
 import asyncio
+import time
 import random
 from copy import copy
 from dataclasses import dataclass
@@ -110,7 +111,7 @@ class Order:
 
 class ControlNode(Node):
     def __init__(self):
-        super().__init__("robot")
+        super().__init__(f"{ROBOT_NAME}_control_node")
         self.robot_name = ROBOT_NAME
         # Robot Control Types
         self.cart_ac = ActionClient(self, CartPose, f'/{self.robot_name}/cartesian_pose')
@@ -142,17 +143,23 @@ class ControlNode(Node):
         self.r4_state = -1
         self._qa_lock = False
         self._state_timer = self.create_timer(
-            0.5,
+            1,
             callback=self._check_state,
         )
         self._img_timer = self.create_timer(
-            0.5,
+            .5,
             callback=self._show_img,
         )
         self.create_subscription(
             SbotStatus,
             R2_STATUS_TOPIC,
             self._robot_status_callback,
+            10
+        )
+        self.create_subscription(
+            String,
+            "/beaker/qa_state_update",
+            self._qa_state_update,
             10
         )
         self.create_subscription(
@@ -174,6 +181,7 @@ class ControlNode(Node):
         )
         self.bridge = CvBridge()
         self._dice_client = self.create_client(srv_type=QaDice, srv_name=f"/{self.robot_name}/qa_dice")
+
         order = Order(
             order_type=OrderType.MOVE_JOINT,
             args=get_pos_goal("Home")
@@ -192,7 +200,7 @@ class ControlNode(Node):
         cv2.namedWindow("QA Result", cv2.WINDOW_NORMAL)
         self.dice_qa_state = False
         self._doing_qa = False
-        self.current_step = CurrentState.MOVE_TO_CONV1
+        self.current_step = CurrentState.QA
 
     def _show_img(self):
         if not self._doing_qa:
@@ -249,6 +257,9 @@ class ControlNode(Node):
         self._error_state = state
         self._publish_robot_status()
 
+    def _qa_state_update(self, val:String):
+        self._qa_class = val.data
+
     def _publish_robot_status(self):
         state = FanucStatus(
             die_qa = bool(self.dice_qa_state),
@@ -284,6 +295,7 @@ class ControlNode(Node):
             if self.processing_command:
                 return
             # Read r2 status
+            self.get_logger().info("Waiting for r2")
             if self.r2_status.state == 8:
                 # R2 is ready to handoff
                 self.get_logger().info("Initializing handoff")
@@ -460,8 +472,8 @@ class ControlNode(Node):
             self.order_queue.put(order)
 
             pos = copy(POSITIONS["RandomPlaceCenter_cart"])
-            pos[0] += random.randrange(-50,50)
-            pos[1] += random.randrange(-50,50)
+            pos[0] += random.randrange(0,50)
+            pos[1] += random.randrange(0,50)
             print(f"Random pos: {pos}")
             POSITIONS["RandomPlace_cart"] = pos
 
@@ -667,7 +679,7 @@ class ControlNode(Node):
         )
         self.order_queue.put(order)
 
-    async def conveyer_sensor_callback(self, msg: ProxReadings):
+    def conveyer_sensor_callback(self, msg: ProxReadings):
         self.prox_readings = msg
         if msg.right:
             if self.current_step == CurrentState.WAIT_FOR_CONV1:
@@ -681,9 +693,8 @@ class ControlNode(Node):
                 self.order_queue.put(order)
                 self.current_step = CurrentState.WAITING_FOR_R4_CONV
 
-    async def _r4_conv_callback(self, msg: State):
+    def _r4_conv_callback(self, msg: State):
         self.r4_state = msg.state
-
 
     @property
     def processing_command(self):
@@ -700,6 +711,9 @@ class ControlNode(Node):
             self._processing_command = True
             if self.new_order is None:
                 self.new_order = self.order_queue.get()
+            else:
+                self.get_logger().info("Command Failed: Waiting 0.5 sec before retry")
+                time.sleep(0.5)
         except Exception as e:
             self.get_logger().error(f"Error getting order: {e}")
             self._processing_command = False
@@ -709,6 +723,7 @@ class ControlNode(Node):
             raise KeyError("Invalid Order Name")
         caller: ActionClient|ServiceClient = getattr(self, self.new_order.order_type.value)
         if isinstance(caller, ActionClient):
+            # self.get_logger().info(f"Sending goal: {self.new_order}")
             self.send_goal(caller, self.new_order.args)
         else:
             self.send_action(caller, self.new_order.args)
@@ -757,8 +772,11 @@ class ControlNode(Node):
 
     def send_goal(self, handler:ActionClient, goal, wait=True):
         self.get_logger().info('Waiting for action server...')
-        handler.wait_for_server()
-        # self.get_logger().info('Sending goal request...')
+        ready = False
+        while not ready:
+            ready = handler.wait_for_server(5)
+            if ready:
+                self.get_logger().info('action Server Ready')
         send_goal_future = handler.send_goal_async(
             goal,
             feedback_callback=self.feedback_callback
@@ -770,7 +788,7 @@ def main():
     node = ControlNode()
 
     while rclpy.ok():
-        rclpy.spin_once(node)
+        rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()
 

@@ -18,3 +18,9 @@ ros2 topic pub "/dave/status" sbot_interfaces/RobotStatus "state: 1"
 #R4 State Update
 ros2 topic pub "/bunsen/state" fanuc_interfaces/State "state: 4"
 ros2 topic pub "/bunsen/current_state" fanuc_interfaces/State "state: 4"
+
+# Combined Launch
+ros2 launch ./start.launch.py
+
+#Modbus
+ros2 launch crx10_modbus modbus_server.py

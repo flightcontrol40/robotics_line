@@ -13,15 +13,19 @@ FANUCethernetipDriver.DEBUG = False
 
 sys.path.append('./pycomm3/pycomm3')
 
-ROBOT_NAME = 'beaker'
-ROBOT_IP = '172.29.208.124'
 
 class go_mount(Node):
     def __init__(self):
         super().__init__('mount_srv')
 
-        self.bot = robot(ROBOT_IP)
-        self.srv = self.create_service(Mount, f"{ROBOT_NAME}/go_mount", self.service_callback)
+        self.declare_parameters(
+            namespace='',
+            parameters=[('robot_ip','172.29.208.0'),
+                        ('robot_name','noNAME')] # custom, default
+        )
+
+        self.bot = robot(self.get_parameter('robot_ip').value)
+        self.srv = self.create_service(Mount, f"{self.get_parameter('robot_name').value}/go_mount", self.service_callback)
 
     def service_callback(self, request, response):
         self.bot.set_joints_to_mount_position(blocking=False)

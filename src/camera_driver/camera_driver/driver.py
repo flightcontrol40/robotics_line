@@ -7,6 +7,7 @@ from rclpy.node import Node
 from sensor_msgs.msg import Image
 
 from camera_driver.camera import Camera
+from robot_3_interfaces.srv import GetFrame
 
 
 def cv2_to_image(cv_img):
@@ -46,9 +47,24 @@ class CameraDriver(Node):
             10
         )
         self._img_timer = self.create_timer(
-            0.5,
+            .5,
             callback=self.capture_image
         )
+        self.srv = self.create_service(
+            GetFrame,
+            "camera/take_img",
+            self.service_callback
+        )
+
+    def service_callback(self, request, response):
+        frame = self.cam.get_frame()
+        img_msg = cv2_to_image(frame)
+        img_msg.header.stamp = self.get_clock().now().to_msg()
+        # Optical frame of your camera
+        img_msg.header.frame_id = 'camera_optical_frame'
+        # Publish
+        response.frame = img_msg
+        return response
 
     def capture_image(self):
         frame = self.cam.get_frame()

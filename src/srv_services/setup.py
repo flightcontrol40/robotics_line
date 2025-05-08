@@ -1,6 +1,5 @@
 import os
 from glob import glob
-
 from setuptools import find_packages, setup
 
 package_name = 'srv_services'
@@ -21,7 +20,7 @@ setup(
     maintainer_email='kolds@uidaho.edu',
     description='ROS2 implementation for Fanuc CRX10',
     license='Apache-2.0',
-
+    tests_require=['pytest'],
     entry_points={
         'console_scripts': [
             'mount_position = srv_services.mount_position:main',

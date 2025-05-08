@@ -13,15 +13,19 @@ FANUCethernetipDriver.DEBUG = False
 
 sys.path.append('./pycomm3/pycomm3')
 
-ROBOT_NAME = 'beaker'
-ROBOT_IP = '172.29.208.124'
 
 class current_joint(Node):
     def __init__(self):
         super().__init__('curr_joint')
 
-        self.bot = robot(ROBOT_IP)
-        self.publisher_ = self.create_publisher(CurJoints, f"{ROBOT_NAME}/cur_joints", 10)
+        self.declare_parameters(
+            namespace='',
+            parameters=[('robot_ip','172.29.208.0'),
+                        ('robot_name','noNAME')] # custom, default
+        )
+
+        self.bot = robot(self.get_parameter('robot_ip').value)
+        self.publisher_ = self.create_publisher(CurJoints, f"{self.get_parameter('robot_name').value}/cur_joints", 10)
         timer_period = 0.5
         self.timer = self.create_timer(timer_period, self.timer_callback)
 

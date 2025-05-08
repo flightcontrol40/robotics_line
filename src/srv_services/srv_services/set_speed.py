@@ -13,15 +13,19 @@ FANUCethernetipDriver.DEBUG = False
 
 sys.path.append('./pycomm3/pycomm3')
 
-ROBOT_NAME = 'beaker'
-ROBOT_IP = '172.29.208.124'
 
 class set_speed(Node):
     def __init__(self):
         super().__init__('speed_srv')
 
-        self.bot = robot(ROBOT_IP)
-        self.srv = self.create_service(SetSpeed, f"{ROBOT_NAME}/set_speed", self.service_callback)
+        self.declare_parameters(
+            namespace='',
+            parameters=[('robot_ip','172.29.208.0'),
+                        ('robot_name','noNAME')] # custom, default
+        )
+
+        self.bot = robot(self.get_parameter('robot_ip').value)
+        self.srv = self.create_service(SetSpeed, f"{self.get_parameter('robot_name').value}/set_speed", self.service_callback)
 
     def service_callback(self, request, response):
         if request.speed >= 0 and request.speed <= 300:

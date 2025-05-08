@@ -3,7 +3,7 @@ import asyncio  # noqa: F401
 import logging
 
 from fanuc_interfaces.msg import ProxReadings
-from pymodbus.client import ModbusBaseClient
+from pymodbus.client import ModbusTcpClient as ModbusBaseClient
 from pymodbus.datastore import (
     ModbusServerContext,
     ModbusSlaveContext,
@@ -60,7 +60,7 @@ class AutoProp(type):
 class PosData(metaclass=AutoProp):
     __auto_props__ = (
         "pos_data",
-        ['x','y','z','w','p','r','t1','t2','t3']
+        ['x','y','z','w','p','r']
     )
 
 # X Position                  33001    2    R    FLOAT32    mm    X position
@@ -96,8 +96,11 @@ class CRX10DiscreteInputs(ThreadSafeDataBlock):
 class CRX10Mapper:
 
     def __init__(self):
-        self.ir: CRX10InputRegisters = CRX10InputRegisters(values= {k:0 for k in range(3001, 3014)})
-        self.di: CRX10DiscreteInputs = CRX10DiscreteInputs(values={k:0 for k in range(3001, 3009)})
+        self.convert_from_registers = convert_from_registers
+        self.convert_to_registers = convert_to_registers
+        self.DATATYPE = DATATYPE
+        self.ir: CRX10InputRegisters = CRX10InputRegisters(values= {k:0 for k in range(3001, 3015)})
+        self.di: CRX10DiscreteInputs = CRX10DiscreteInputs(values={k:0 for k in range(3001, 3010)})
         self.server_context = self._build_context()
 
     def _build_context(self):
@@ -124,9 +127,9 @@ class CRX10Mapper:
         data = [_pos.x, _pos.y, _pos.z, _pos.p, _pos.r, _pos.w]
         encode_pos = convert_to_registers(data,data_type= DATATYPE.FLOAT32)
         self.ir.setValues(3001,encode_pos)
-        data = [_pos.t1,_pos.t2,_pos.t3]
-        encode_pos = convert_to_registers(data,data_type=DATATYPE.BITS)
-        self.di.setValues(3001,encode_pos)
+        # data = [_pos.t1,_pos.t2,_pos.t3]
+        # encode_pos = convert_to_registers(data,data_type=DATATYPE.BITS)
+        # self.di.setValues(3001,encode_pos)
 
     @property
     def gripper(self) -> str:
@@ -226,5 +229,6 @@ class CRX10ModbusServer():
             address=(self.host, self.port),  # listen address
             framer="socket",  # The framer strategy to use
         )
+        self.server
 
 

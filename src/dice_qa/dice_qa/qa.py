@@ -8,7 +8,7 @@ from rclpy.node import Node
 from sensor_msgs.msg import Image
 from ultralytics import YOLO
 from ultralytics.engine.results import Results
-from robot_3_interfaces.srv import QaDice
+from robot_3_interfaces.srv import QaDice, GetFrame
 import numpy as np
 
 BLANK_IMAGE = np.zeros((1024,1000,3), np.uint8)
@@ -53,6 +53,8 @@ class DiceQA(Node):
             self._img_sub,
             10
         )
+        self._img_client = self.create_client(srv_type=GetFrame, srv_name="/camera/take_img")
+        
         self.srv = self.create_service(
             QaDice,
             f"{self.robot_name}/qa_dice",
@@ -83,6 +85,8 @@ class DiceQA(Node):
         return (self.bridge.cv2_to_imgmsg(self.qa_image), qa_class)
 
     def _qa_image(self, _:QaDice.Request, response:QaDice.Response):
+        # self._img_client.wait_for_service()
+        # self.latest_img = self._img_client.call(GetFrame.Request())
         # Crop the image down
         qa_img, qa_class = self._preform_qa()
         response.obj_cls = qa_class

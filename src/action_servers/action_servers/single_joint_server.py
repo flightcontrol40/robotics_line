@@ -14,17 +14,21 @@ FANUCethernetipDriver.DEBUG = False
 
 sys.path.append('./pycomm3/pycomm3')
 
-ROBOT_NAME = 'beaker'
-ROBOT_IP = '172.29.208.124'
 
 class sjoint_pose_server(Node):
     def __init__(self):
         super().__init__('sjoint_pose_server')
 
-        self.goal = SJointPose.Goal()
-        self.bot = robot(ROBOT_IP)
+        self.declare_parameters(
+            namespace='',
+            parameters=[('robot_ip','172.29.208.0'),
+                        ('robot_name','noNAME')] # custom, default
+        )
 
-        self._action_server = ActionServer(self, SJointPose, f"{ROBOT_NAME}/single_joint_pose", 
+        self.goal = SJointPose.Goal()
+        self.bot = robot(self.get_parameter('robot_ip').value)
+
+        self._action_server = ActionServer(self, SJointPose, f"{self.get_parameter('robot_name').value}/single_joint_pose", 
                                         execute_callback = self.execute_callback, 
                                         goal_callback = self.goal_callback,
                                         cancel_callback = self.cancel_callback)
@@ -54,7 +58,7 @@ class sjoint_pose_server(Node):
             goal_handle.canceled()
             return CancelResponse.ACCEPT
 
-    async def execute_callback(self, goal_handle):
+    def execute_callback(self, goal_handle):
         try:
             feedback_msg = SJointPose.Feedback()
             feedback_msg.distance_left = self.bot.read_current_joint_position()[self.goal.joint - 1] # starting pose

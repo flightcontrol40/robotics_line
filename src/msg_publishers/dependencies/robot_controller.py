@@ -21,8 +21,7 @@
 # Imports
 import math
 import typing
-
-from dependencies import FANUCethernetipDriver
+from . import FANUCethernetipDriver
 
 ## The mode of operation; 
 
@@ -166,25 +165,7 @@ class robot:
                     self.write_cartesian_position(coord, blocking=blocking) # Loop through all coords in list and run them.
             else:
                 raise Warning("If passing a list of lists, all elements must be lists!")
-        elif len(coords) == 9:
-            if coords[3] > 179.9 or coords[3] < -179.9:
-                raise Warning(f"W, P and R should be in the range of [-179.9, 179.9], got {coords[3]}")
-            if coords[4] > 179.9 or coords[4] < -179.9:
-                raise Warning(f"W, P and R should be in the range of [-179.9, 179.9], got {coords[4]}")
-            if coords[5] > 179.9 or coords[5] < -179.9:
-                raise Warning(f"W, P and R should be in the range of [-179.9, 179.9], got {coords[5]}")
             
-            self.CurCartesianPosList[2] = coords[0]
-            self.CurCartesianPosList[3] = coords[1]
-            self.CurCartesianPosList[4] = coords[2]
-            self.CurCartesianPosList[5] = coords[3]
-            self.CurCartesianPosList[6] = coords[4]
-            self.CurCartesianPosList[7] = coords[5]
-            self.CurCartesianPosList[8] = coords[6]
-            self.CurCartesianPosList[9] = coords[7]
-            self.CurCartesianPosList[10] = coords[8]
-            FANUCethernetipDriver.writeCartesianPositionRegister(self.robot_IP, self.PRNumber,  self.CurCartesianPosList)
-            self.start_robot(blocking=blocking)
         # If here, coords is NOT a list of lists (single list)
         elif len(coords) == 6:
             # This means we got all 6 coordinates

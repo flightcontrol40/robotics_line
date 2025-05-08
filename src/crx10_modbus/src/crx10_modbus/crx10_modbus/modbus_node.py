@@ -19,22 +19,35 @@ class ModbusServer(Node):
         self._pos_sub = self.create_subscription(
             CurCartesian,
             f'/{robot_name}/cur_cartesian',
+            qos_profile=10,
             callback=self._update_pos,
+            
         )
         self._gripper_sub = self.create_subscription(
             CurCartesian,
             f'/{robot_name}/grip_status',
+            qos_profile=10,
+
             callback=self._update_gripper,
         )
         self._robot_status_sub = self.create_subscription(
             RobotStatus,
             f'/{robot_name}/robot_status',
+            qos_profile=10,
             callback=self._update_robot_status,
         )
 
     def _update_pos(self, pos: CurCartesian):
-        self.get_logger().debug(f'Got Pos: {pos.pose}')
-        self.server.mapper.position = PosData(pos.pose)
+        self.get_logger().info(f'Got Pos: {pos.pose}')
+        encode_pos = self.server.mapper.convert_to_registers(
+            list(pos.pose),
+            data_type=self.server.mapper.DATATYPE.FLOAT32
+        )
+        self.get_logger().info(f'encoded values: {encode_pos}')
+
+        self.server.mapper.ir.setValues(3001, encode_pos)
+        
+        # self.server.mapper.position = PosData(pos.pose)
 
     def _update_gripper(self, grip: CurGripper):
         self.get_logger().debug(f'Got Gripper State: {grip.open}')
@@ -57,7 +70,7 @@ def main():
 
 async def modbus_loop(server: CRX10ModbusServer):
     server.init_server()
-    await server.server.serve_forever()
+    await server.server.serve_forever(background=True)
 
 async def ros_loop(node: "ModbusServer"):
     print("Node started.")

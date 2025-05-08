@@ -1,29 +1,34 @@
 #!/usr/bin/env python3
 import sys
+import os
+import rclpy
 
 import dependencies.FANUCethernetipDriver as FANUCethernetipDriver
-import rclpy
+
 from dependencies.robot_controller import robot
 from fanuc_interfaces.action import CartPose
-from rclpy.action import ActionServer, CancelResponse, GoalResponse
 from rclpy.node import Node
+from rclpy.action import ActionServer, GoalResponse, CancelResponse
 
 FANUCethernetipDriver.DEBUG = False
 
 sys.path.append('./pycomm3/pycomm3')
 
-ROBOT_NAME = 'beaker'
-ROBOT_IP = '172.29.208.124'
 
 class cart_pose_server(Node):
     def __init__(self):
         super().__init__('cart_pose_server')
 
+        self.declare_parameters(
+            namespace='',
+            parameters=[('robot_ip','172.29.208.0'),
+                        ('robot_name','noNAME')] # custom, default
+        )
 
         self.goal = CartPose.Goal()
-        self.bot = robot(ROBOT_IP)
+        self.bot = robot(self.get_parameter('robot_ip').value)
 
-        self._action_server = ActionServer(self, CartPose, f"/{ROBOT_NAME}/cartesian_pose", 
+        self._action_server = ActionServer(self, CartPose, f"/{self.get_parameter('robot_name').value}/cartesian_pose", 
                                         execute_callback = self.execute_callback, 
                                         goal_callback = self.goal_callback,
                                         cancel_callback = self.cancel_callback)
@@ -79,11 +84,7 @@ class cart_pose_server(Node):
                                             self.goal.z,
                                             self.goal.w, 
                                             self.goal.p,
-                                            self.goal.r,
-                                            self.goal.t1,
-                                            self.goal.t2,
-                                            self.goal.t3
-                                            ],
+                                            self.goal.r],
                                             blocking=False)
 
             while self.bot.is_moving():

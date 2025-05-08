@@ -51,8 +51,6 @@ class Camera:
         self.cap = mvsdk.CameraGetCapability(self.hCamera)
         mvsdk.CameraSetIspOutFormat(self.hCamera, mvsdk.CAMERA_MEDIA_TYPE_BGR8)
         mvsdk.CameraSetTriggerMode(self.hCamera, 0)
-        # mvsdk.CameraSetAeState(self.hCamera, 0)
-        # mvsdk.CameraSetExposureTime(self.hCamera, 30 * 1000)
 
         self.FrameBufferSize = self.cap.sResolutionRange.iWidthMax * self.cap.sResolutionRange.iHeightMax *  3
         mvsdk.CameraSetDenoise3DParams(self.hCamera, False, 2, 0)
